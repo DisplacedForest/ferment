@@ -1,6 +1,6 @@
 {
   "name": "ferment",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,6 +23,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {

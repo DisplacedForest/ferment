@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { batches, timelineEntries, batchPhases, phaseActions, protocolTemplates } from "@/db/schema";
+import { batches, timelineEntries, batchPhases, phaseActions, protocolTemplates, hydrometers, hydrometerReadings, appSettings } from "@/db/schema";
 import { eq, desc, asc, sql, and, count } from "drizzle-orm";
 import { calculateAbv, daysBetween } from "./utils";
 import { evaluatePhase } from "./phase-engine";
@@ -16,6 +16,9 @@ import type {
   TimelineEntryType,
   TimelineEntryData,
   ReadingData,
+  Hydrometer,
+  HydrometerType,
+  HydrometerReading,
 } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -239,6 +242,7 @@ export interface CreateBatchInput {
   notes?: string;
   parentBatchIds?: string[];
   phases?: CreateBatchPhasesInput[];
+  hydrometerId?: number;
 }
 
 export async function createBatch(data: CreateBatchInput): Promise<Batch> {
@@ -255,6 +259,7 @@ export async function createBatch(data: CreateBatchInput): Promise<Batch> {
       originalGravity: data.originalGravity ?? null,
       parentBatchIds: data.parentBatchIds ?? null,
       notes: data.notes ?? null,
+      hydrometerId: data.hydrometerId ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -334,6 +339,17 @@ export async function getTimelineEntries(
 ): Promise<{ entries: TimelineEntry[]; total: number }> {
   const { type, limit = 50, offset = 0 } = options;
 
+  // Lazily generate missing daily recaps when loading the full timeline
+  // or specifically requesting daily_recap entries
+  if (!type || type === "daily_recap") {
+    try {
+      const { generateMissingRecaps } = await import("./daily-recap");
+      await generateMissingRecaps(batchId);
+    } catch (err) {
+      console.error("Daily recap generation error (non-fatal):", err);
+    }
+  }
+
   const conditions = type
     ? and(eq(timelineEntries.batchId, batchId), eq(timelineEntries.entryType, type))
     : eq(timelineEntries.batchId, batchId);
@@ -375,7 +391,7 @@ export async function createTimelineEntry(
     .values({
       batchId,
       entryType: input.entryType,
-      source: (input.source ?? "manual") as "manual" | "tilt" | "ispindel" | "rapt" | "api",
+      source: (input.source ?? "manual") as "manual" | "hydrometer-auto" | "hydrometer-confirmed" | "system" | "api",
       data: input.data as unknown as Record<string, unknown>,
       createdAt: now,
       createdBy: input.createdBy ?? null,
@@ -659,4 +675,235 @@ export async function deleteTemplate(id: number): Promise<void> {
   if (template.isBuiltin) throw new Error("Cannot delete built-in templates");
 
   await db.delete(protocolTemplates).where(eq(protocolTemplates.id, id));
+}
+
+// ---------------------------------------------------------------------------
+// Hydrometers
+// ---------------------------------------------------------------------------
+
+export async function getHydrometers(activeOnly?: boolean): Promise<Hydrometer[]> {
+  const conditions = activeOnly ? eq(hydrometers.isActive, true) : undefined;
+  const rows = await db.select().from(hydrometers).where(conditions).orderBy(asc(hydrometers.name));
+  return rows as unknown as Hydrometer[];
+}
+
+export async function getHydrometerById(id: number): Promise<Hydrometer | null> {
+  const rows = await db.select().from(hydrometers).where(eq(hydrometers.id, id)).limit(1);
+  return rows.length > 0 ? (rows[0] as unknown as Hydrometer) : null;
+}
+
+export async function getHydrometerByTypeAndIdentifier(
+  type: HydrometerType,
+  identifier: string
+): Promise<Hydrometer | null> {
+  const rows = await db
+    .select()
+    .from(hydrometers)
+    .where(and(eq(hydrometers.type, type), eq(hydrometers.identifier, identifier)))
+    .limit(1);
+  return rows.length > 0 ? (rows[0] as unknown as Hydrometer) : null;
+}
+
+export async function createHydrometer(data: {
+  name: string;
+  type: HydrometerType;
+  identifier: string;
+  calibrationOffset?: number;
+}): Promise<Hydrometer> {
+  const [row] = await db
+    .insert(hydrometers)
+    .values({
+      name: data.name,
+      type: data.type,
+      identifier: data.identifier,
+      calibrationOffset: data.calibrationOffset ?? 0,
+    })
+    .returning();
+  return row as unknown as Hydrometer;
+}
+
+export async function updateHydrometer(
+  id: number,
+  data: Partial<{ name: string; identifier: string; calibrationOffset: number; isActive: boolean }>
+): Promise<Hydrometer | null> {
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.identifier !== undefined) updateData.identifier = data.identifier;
+  if (data.calibrationOffset !== undefined) updateData.calibrationOffset = data.calibrationOffset;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+  if (Object.keys(updateData).length === 0) return getHydrometerById(id);
+
+  const rows = await db
+    .update(hydrometers)
+    .set(updateData)
+    .where(eq(hydrometers.id, id))
+    .returning();
+  return rows.length > 0 ? (rows[0] as unknown as Hydrometer) : null;
+}
+
+export async function deleteHydrometer(id: number): Promise<void> {
+  await db.delete(hydrometers).where(eq(hydrometers.id, id));
+}
+
+// ---------------------------------------------------------------------------
+// Hydrometer Readings
+// ---------------------------------------------------------------------------
+
+export async function createHydrometerReading(data: {
+  batchId: number;
+  hydrometerId: number;
+  gravity: number;
+  temperature?: number;
+  tempUnit?: "F" | "C";
+  rawData?: Record<string, unknown>;
+  recordedAt: string;
+}): Promise<HydrometerReading> {
+  const [row] = await db
+    .insert(hydrometerReadings)
+    .values({
+      batchId: data.batchId,
+      hydrometerId: data.hydrometerId,
+      gravity: data.gravity,
+      temperature: data.temperature ?? null,
+      tempUnit: data.tempUnit ?? "F",
+      rawData: data.rawData ?? null,
+      recordedAt: data.recordedAt,
+    })
+    .returning();
+
+  // Update batch.updatedAt and hydrometer.lastSeenAt
+  const now = new Date().toISOString();
+  await db.update(batches).set({ updatedAt: now }).where(eq(batches.id, data.batchId));
+  await db.update(hydrometers).set({ lastSeenAt: now }).where(eq(hydrometers.id, data.hydrometerId));
+
+  // Update finalGravity on batch
+  await db.update(batches).set({ finalGravity: data.gravity }).where(eq(batches.id, data.batchId));
+
+  return row as unknown as HydrometerReading;
+}
+
+export async function getHydrometerReadings(
+  batchId: number,
+  options: { from?: string; to?: string; resolution?: "raw" | "hourly" | "daily" } = {}
+): Promise<HydrometerReading[]> {
+  const { from, to, resolution = "raw" } = options;
+
+  const conditions = [eq(hydrometerReadings.batchId, batchId)];
+  if (from) conditions.push(sql`${hydrometerReadings.recordedAt} >= ${from}`);
+  if (to) conditions.push(sql`${hydrometerReadings.recordedAt} <= ${to}`);
+
+  if (resolution === "raw") {
+    const rows = await db
+      .select()
+      .from(hydrometerReadings)
+      .where(and(...conditions))
+      .orderBy(asc(hydrometerReadings.recordedAt));
+    return rows as unknown as HydrometerReading[];
+  }
+
+  // Aggregated queries
+  const groupFormat = resolution === "hourly" ? "%Y-%m-%dT%H:00:00" : "%Y-%m-%d";
+  const rows = await db
+    .select({
+      id: sql<number>`MIN(${hydrometerReadings.id})`,
+      batchId: hydrometerReadings.batchId,
+      hydrometerId: sql<number>`MIN(${hydrometerReadings.hydrometerId})`,
+      gravity: sql<number>`AVG(${hydrometerReadings.gravity})`,
+      temperature: sql<number>`AVG(${hydrometerReadings.temperature})`,
+      tempUnit: sql<string>`MIN(${hydrometerReadings.tempUnit})`,
+      rawData: sql<null>`NULL`,
+      recordedAt: sql<string>`strftime(${groupFormat}, ${hydrometerReadings.recordedAt})`,
+      createdAt: sql<string>`MIN(${hydrometerReadings.createdAt})`,
+    })
+    .from(hydrometerReadings)
+    .where(and(...conditions))
+    .groupBy(sql`strftime(${groupFormat}, ${hydrometerReadings.recordedAt})`)
+    .orderBy(sql`strftime(${groupFormat}, ${hydrometerReadings.recordedAt})`);
+
+  return rows as unknown as HydrometerReading[];
+}
+
+export async function getLatestHydrometerReading(batchId: number): Promise<HydrometerReading | null> {
+  const rows = await db
+    .select()
+    .from(hydrometerReadings)
+    .where(eq(hydrometerReadings.batchId, batchId))
+    .orderBy(desc(hydrometerReadings.recordedAt))
+    .limit(1);
+  return rows.length > 0 ? (rows[0] as unknown as HydrometerReading) : null;
+}
+
+export async function getReadingsForDate(
+  batchId: number,
+  date: string
+): Promise<HydrometerReading[]> {
+  const rows = await db
+    .select()
+    .from(hydrometerReadings)
+    .where(
+      and(
+        eq(hydrometerReadings.batchId, batchId),
+        sql`date(${hydrometerReadings.recordedAt}) = ${date}`
+      )
+    )
+    .orderBy(asc(hydrometerReadings.recordedAt));
+  return rows as unknown as HydrometerReading[];
+}
+
+export async function getDatesWithReadings(batchId: number): Promise<string[]> {
+  const rows = await db
+    .select({ date: sql<string>`DISTINCT date(${hydrometerReadings.recordedAt})` })
+    .from(hydrometerReadings)
+    .where(eq(hydrometerReadings.batchId, batchId))
+    .orderBy(sql`date(${hydrometerReadings.recordedAt})`);
+  return rows.map((r) => r.date);
+}
+
+export async function getBatchesWithHydrometer(hydrometerId: number): Promise<Batch[]> {
+  const rows = await db
+    .select()
+    .from(batches)
+    .where(
+      and(
+        eq(batches.hydrometerId, hydrometerId),
+        eq(batches.status, "active")
+      )
+    );
+  return rows as unknown as Batch[];
+}
+
+// ---------------------------------------------------------------------------
+// App Settings (key-value store)
+// ---------------------------------------------------------------------------
+
+export async function getSetting(key: string): Promise<string | null> {
+  const rows = await db
+    .select()
+    .from(appSettings)
+    .where(eq(appSettings.key, key))
+    .limit(1);
+  return rows.length > 0 ? rows[0].value : null;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  const now = new Date().toISOString();
+  const existing = await getSetting(key);
+  if (existing !== null) {
+    await db
+      .update(appSettings)
+      .set({ value, updatedAt: now })
+      .where(eq(appSettings.key, key));
+  } else {
+    await db.insert(appSettings).values({ key, value, updatedAt: now });
+  }
+}
+
+export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  for (const key of keys) {
+    const val = await getSetting(key);
+    if (val !== null) result[key] = val;
+  }
+  return result;
 }

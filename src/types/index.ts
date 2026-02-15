@@ -7,14 +7,17 @@ export type TimelineEntryType =
   | "taste"
   | "phase_change"
   | "note"
-  | "alert";
+  | "alert"
+  | "daily_recap";
 
-export type TimelineSource = "manual" | "tilt" | "ispindel" | "rapt" | "api";
+export type TimelineSource = "manual" | "hydrometer-auto" | "hydrometer-confirmed" | "system" | "api";
 
 export type RackMethod = "siphon" | "pump" | "gravity";
 
 export type AlertType = "stuck_fermentation" | "temperature" | "overdue_action" | "custom";
 export type AlertSeverity = "info" | "warning" | "critical";
+
+export type HydrometerType = "tilt" | "ispindel" | "rapt" | "other";
 
 export interface ReadingData {
   type: "reading";
@@ -73,6 +76,19 @@ export interface AlertData {
   resolvedAt?: string;
 }
 
+export interface DailyRecapData {
+  type: "daily_recap";
+  date: string;
+  openingGravity: number;
+  closingGravity: number;
+  gravityDelta: number;
+  avgTemperature: number | null;
+  tempRange: { min: number; max: number } | null;
+  tempUnit: "F" | "C";
+  readingCount: number;
+  dayNumber: number;
+}
+
 export type TimelineEntryData =
   | ReadingData
   | AdditionData
@@ -80,7 +96,31 @@ export type TimelineEntryData =
   | TasteData
   | NoteData
   | PhaseChangeData
-  | AlertData;
+  | AlertData
+  | DailyRecapData;
+
+export interface Hydrometer {
+  id: number;
+  name: string;
+  type: HydrometerType;
+  identifier: string;
+  calibrationOffset: number;
+  isActive: boolean;
+  lastSeenAt: string | null;
+  createdAt: string;
+}
+
+export interface HydrometerReading {
+  id: number;
+  batchId: number;
+  hydrometerId: number;
+  gravity: number;
+  temperature: number | null;
+  tempUnit: "F" | "C" | null;
+  rawData: Record<string, unknown> | null;
+  recordedAt: string;
+  createdAt: string;
+}
 
 export interface Batch {
   id: number;
@@ -96,6 +136,7 @@ export interface Batch {
   parentBatchIds: string[] | null;
   notes: string | null;
   currentPhaseId: number | null;
+  hydrometerId: number | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;

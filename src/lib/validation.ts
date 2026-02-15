@@ -1,4 +1,5 @@
 import type { TimelineEntryType, TimelineEntryData } from "@/types";
+// Note: daily_recap entries are system-generated and skip normal validation
 
 export function validateTimelineData(
   entryType: TimelineEntryType,
@@ -129,6 +130,14 @@ export function validateTimelineData(
           message: data.message as string,
           resolved: data.resolved as boolean | undefined,
         },
+      };
+    }
+
+    case "daily_recap": {
+      // System-generated — no user validation needed, pass through
+      return {
+        valid: true,
+        data: data as unknown as TimelineEntryData,
       };
     }
 

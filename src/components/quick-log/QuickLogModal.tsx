@@ -146,7 +146,11 @@ export function QuickLogModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormComponent data={formData} onChange={setFormData} />
+          {activeType === "reading" ? (
+            <ReadingForm data={formData} onChange={setFormData} batchUuid={batchUuid} />
+          ) : (
+            <FormComponent data={formData} onChange={setFormData} />
+          )}
 
           {/* Created by */}
           <div className="border-t border-parchment-300/60 pt-4">

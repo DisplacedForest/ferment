@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-15
+
+### Added
+
+- Hydrometer device management: register, edit calibration, toggle active, scan for Tilts on the network
+- Hydrometer CRUD API (`/api/v1/hydrometers`) with scan endpoint for TiltPi BLE discovery
+- Hydrometer readings ingest and time-series API (`/api/v1/batches/[id]/readings`) with raw/hourly/daily resolution
+- Tilt polling service: auto-polls TiltPi at configurable intervals, ingests readings for linked batches
+- Tilt polling configuration in Settings UI (enable/disable, URL, poll interval) backed by `app_settings` table
+- Settings API (`/api/v1/settings`) for runtime-configurable app settings
+- Daily fermentation recaps: auto-generated timeline summaries with gravity delta, temperature range, reading count
+- Recap timeline rendering with mini SVG sparkline showing gravity direction
+- Fermentation curve chart (Recharts): dual-axis gravity/temperature, phase boundary lines, time range selector
+- TiltPi CSV import: parse and bulk-import historical data from TiltPi Google Sheets exports
+- Import UI in Settings with CSV preview, batch/hydrometer selection, and progress feedback
+- Quick Log pre-fill: auto-populates gravity and temperature from latest hydrometer reading
+- Batch wizard Connect step: link a hydrometer during batch creation
+- `hydrometers`, `hydrometer_readings`, and `app_settings` database tables
+- `daily_recap` timeline entry type with system source
+- Alert detection on reading ingest: stuck fermentation, temperature drift, gravity anomaly
+
+### Changed
+
+- Tilt polling config moved from environment variables to database-backed Settings UI
+- Batch creation accepts optional `hydrometerId` to link a hydrometer
+- Timeline source enum updated to `manual | hydrometer-auto | hydrometer-confirmed | system | api`
+- Scan route reads TiltPi URL from DB settings instead of env vars
+- `.env.example` cleaned up: removed Tilt/MQTT env vars (now configured in-app)
+
 ## [0.3.0] - 2026-02-15
 
 ### Added
@@ -73,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/DisplacedForest/ferment/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/DisplacedForest/ferment/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/DisplacedForest/ferment/releases/tag/v0.1.0

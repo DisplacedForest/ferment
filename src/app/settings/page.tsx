@@ -1,3 +1,7 @@
+import { HydrometerManager } from "@/components/settings/HydrometerManager";
+import { TiltImport } from "@/components/settings/TiltImport";
+import { TiltPollingConfig } from "@/components/settings/TiltPollingConfig";
+
 export default function Settings() {
   return (
     <div className="pt-8 sm:pt-16">
@@ -6,15 +10,25 @@ export default function Settings() {
           Settings
         </h1>
         <p className="mt-1 text-parchment-700">
-          Nothing to configure yet.
+          Device integrations and data management.
         </p>
       </div>
 
-      <div className="rounded-md border border-parchment-300/80 bg-parchment-50 px-6 py-10 sm:px-10">
-        <p className="text-sm leading-relaxed text-parchment-800/60">
-          Preferences, integrations, and account stuff will live here
-          once there&apos;s something worth configuring.
-        </p>
+      <div className="space-y-8">
+        {/* Tilt polling config */}
+        <div className="rounded-md border border-parchment-300/80 bg-parchment-50 px-6 py-6">
+          <TiltPollingConfig />
+        </div>
+
+        {/* Hydrometer manager */}
+        <div className="rounded-md border border-parchment-300/80 bg-parchment-50 px-6 py-6">
+          <HydrometerManager />
+        </div>
+
+        {/* Import */}
+        <div className="rounded-md border border-parchment-300/80 bg-parchment-50 px-6 py-6">
+          <TiltImport />
+        </div>
       </div>
     </div>
   );

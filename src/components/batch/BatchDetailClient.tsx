@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Timeline } from "./Timeline";
 import { ProtocolTab } from "./ProtocolTab";
+import { FermentationChart } from "./FermentationChart";
 import { QuickLogModal } from "@/components/quick-log/QuickLogModal";
 import type { TimelineEntry, BatchPhase } from "@/types";
 
@@ -66,9 +67,7 @@ export function BatchDetailClient({
         </TabsContent>
 
         <TabsContent value="chart">
-          <div className="py-12 text-center text-sm text-parchment-700">
-            Fermentation curve coming soon.
-          </div>
+          <FermentationChart batchUuid={batchUuid} phases={phases} />
         </TabsContent>
 
         <TabsContent value="protocol">

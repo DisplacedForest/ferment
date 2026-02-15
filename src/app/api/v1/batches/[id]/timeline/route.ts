@@ -55,7 +55,7 @@ export async function POST(
     }
 
     const validTypes: TimelineEntryType[] = [
-      "reading", "addition", "rack", "taste", "phase_change", "note", "alert",
+      "reading", "addition", "rack", "taste", "phase_change", "note", "alert", "daily_recap",
     ];
     if (!validTypes.includes(body.entryType)) {
       return NextResponse.json(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { BatchWithComputed } from "@/types";
+import type { BatchWithComputed, Hydrometer } from "@/types";
 import type { PhaseInput } from "./StepProtocol";
 
 interface StepConnectProps {
@@ -17,6 +17,8 @@ interface StepConnectProps {
   phases: PhaseInput[];
   parentBatchIds: string[];
   onParentBatchIdsChange: (ids: string[]) => void;
+  hydrometerId: number | null;
+  onHydrometerIdChange: (id: number | null) => void;
 }
 
 export function StepConnect({
@@ -24,14 +26,20 @@ export function StepConnect({
   phases,
   parentBatchIds,
   onParentBatchIdsChange,
+  hydrometerId,
+  onHydrometerIdChange,
 }: StepConnectProps) {
   const [batches, setBatches] = useState<BatchWithComputed[]>([]);
+  const [hydrometers, setHydrometers] = useState<Hydrometer[]>([]);
 
   useEffect(() => {
-    fetch("/api/v1/batches")
-      .then((r) => r.json())
-      .then(setBatches)
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/v1/batches").then((r) => r.json()),
+      fetch("/api/v1/hydrometers?active=true").then((r) => r.json()),
+    ]).then(([b, h]) => {
+      setBatches(b);
+      setHydrometers(h);
+    }).catch(() => {});
   }, []);
 
   function toggleParent(uuid: string) {
@@ -49,11 +57,28 @@ export function StepConnect({
         <label className="block text-sm font-medium text-wine-800 mb-1">
           Hydrometer
         </label>
-        <div className="rounded-md border border-dashed border-parchment-400 bg-parchment-100 px-4 py-3">
-          <p className="text-sm text-parchment-600">
-            Available after device setup. For now, log readings manually.
-          </p>
-        </div>
+        {hydrometers.length > 0 ? (
+          <select
+            value={hydrometerId ?? ""}
+            onChange={(e) =>
+              onHydrometerIdChange(e.target.value ? parseInt(e.target.value, 10) : null)
+            }
+            className="w-full rounded-md border border-parchment-400 bg-parchment-50 px-3 py-2 text-sm text-wine-800 focus:border-wine-400 focus:outline-none focus:ring-1 focus:ring-wine-500/50"
+          >
+            <option value="">None — log readings manually</option>
+            {hydrometers.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name} ({h.type} — {h.identifier})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="rounded-md border border-dashed border-parchment-400 bg-parchment-100 px-4 py-3">
+            <p className="text-sm text-parchment-600">
+              No hydrometers registered. Add one in Settings to enable auto-logging.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Parent batches */}
@@ -128,6 +153,14 @@ export function StepConnect({
                 : "None"}
             </span>
           </div>
+          {hydrometerId && (
+            <div className="flex justify-between">
+              <span className="text-parchment-700">Hydrometer</span>
+              <span className="text-wine-800">
+                {hydrometers.find((h) => h.id === hydrometerId)?.name ?? "Selected"}
+              </span>
+            </div>
+          )}
           {parentBatchIds.length > 0 && (
             <div className="flex justify-between">
               <span className="text-parchment-700">Parents</span>

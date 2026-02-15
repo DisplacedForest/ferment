@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       notes: body.notes?.trim() || undefined,
       parentBatchIds: body.parentBatchIds ?? undefined,
       phases: body.phases ?? undefined,
+      hydrometerId: body.hydrometerId ?? undefined,
     });
 
     return NextResponse.json(batch, { status: 201 });

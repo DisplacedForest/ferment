@@ -32,6 +32,7 @@ export function BatchWizard() {
 
   // Step 3 — Connect
   const [parentBatchIds, setParentBatchIds] = useState<string[]>([]);
+  const [hydrometerId, setHydrometerId] = useState<number | null>(null);
 
   function handleBasicsChange(field: string, value: string) {
     setBasics((prev) => ({ ...prev, [field]: value }));
@@ -55,6 +56,7 @@ export function BatchWizard() {
       originalGravity: basics.originalGravity ? parseFloat(basics.originalGravity) : undefined,
       notes: basics.notes.trim() || undefined,
       parentBatchIds: parentBatchIds.length > 0 ? parentBatchIds : undefined,
+      hydrometerId: hydrometerId ?? undefined,
     };
 
     if (phases.length > 0) {
@@ -148,6 +150,8 @@ export function BatchWizard() {
           phases={phases}
           parentBatchIds={parentBatchIds}
           onParentBatchIdsChange={setParentBatchIds}
+          hydrometerId={hydrometerId}
+          onHydrometerIdChange={setHydrometerId}
         />
       )}
 

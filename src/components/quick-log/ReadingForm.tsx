@@ -1,13 +1,75 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { timeAgo } from "@/lib/utils";
+
 interface ReadingFormProps {
   data: Record<string, unknown>;
   onChange: (data: Record<string, unknown>) => void;
+  batchUuid?: string;
 }
 
-export function ReadingForm({ data, onChange }: ReadingFormProps) {
+interface LatestReading {
+  gravity: number;
+  temperature: number | null;
+  tempUnit: string | null;
+  recordedAt: string;
+  hydrometerId: number;
+}
+
+export function ReadingForm({ data, onChange, batchUuid }: ReadingFormProps) {
+  const [prefillInfo, setPrefillInfo] = useState<{
+    source: string;
+    time: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!batchUuid) return;
+
+    async function fetchLatest() {
+      try {
+        const res = await fetch(`/api/v1/batches/${batchUuid}/readings?resolution=raw`);
+        if (!res.ok) return;
+        const result = await res.json();
+        const latest: LatestReading | null = result.latest;
+        if (!latest) return;
+
+        // Only pre-fill if reading is less than 24h old and fields are empty
+        const ageMs = Date.now() - new Date(latest.recordedAt).getTime();
+        if (ageMs > 86400000) return;
+
+        if (!data.gravity && !data.temperature) {
+          onChange({
+            ...data,
+            gravity: latest.gravity,
+            temperature: latest.temperature ?? undefined,
+            temperatureUnit: latest.tempUnit ?? "F",
+          });
+          setPrefillInfo({
+            source: `Hydrometer`,
+            time: timeAgo(latest.recordedAt),
+          });
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    fetchLatest();
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchUuid]);
+
   return (
     <div className="space-y-4">
+      {prefillInfo && (
+        <div className="rounded-md bg-parchment-200/60 px-3 py-2">
+          <p className="text-xs text-parchment-600">
+            From {prefillInfo.source}, {prefillInfo.time}
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-wine-800 mb-1">Gravity</label>
         <input
