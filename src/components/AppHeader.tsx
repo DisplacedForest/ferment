@@ -10,12 +10,18 @@ export function AppHeader() {
         >
           Ferment
         </Link>
-        <nav className="flex items-baseline gap-8">
+        <nav className="flex items-baseline gap-6">
           <Link
             href="/"
             className="text-sm font-medium text-wine-800/80 transition-colors hover:text-wine-600"
           >
             Dashboard
+          </Link>
+          <Link
+            href="/batches/new"
+            className="text-sm text-parchment-700 transition-colors hover:text-wine-600"
+          >
+            + New batch
           </Link>
           <Link
             href="/settings"
