@@ -1,0 +1,9 @@
+services:
+  ferment:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      - DATABASE_PATH=/data/ferment.db

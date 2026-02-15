@@ -1,0 +1,63 @@
+name: Release on Version Bump
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check-version:
+    name: Detect Version Bump
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+      new_version: ${{ steps.check.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for version change in package.json
+        id: check
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          PREVIOUS=$(git show HEAD~1:package.json 2>/dev/null | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version" 2>/dev/null || echo "")
+
+          if [ "$CURRENT" != "$PREVIOUS" ] && [ -n "$PREVIOUS" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+            echo "Version changed: $PREVIOUS -> $CURRENT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No version change detected (current: $CURRENT)"
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: check-version
+    if: needs.check-version.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ needs.check-version.outputs.new_version }}"
+          # Extract the section for this version from CHANGELOG.md
+          NOTES=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+          # Write to file to handle multiline
+          echo "$NOTES" > /tmp/release-notes.md
+          echo "Extracted changelog for v${VERSION}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.new_version }}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes-file /tmp/release-notes.md

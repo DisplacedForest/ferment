@@ -1,0 +1,192 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Wine palette */
+  --color-wine-50: #faf5f7;
+  --color-wine-100: #f0e0e6;
+  --color-wine-200: #ddbcc7;
+  --color-wine-300: #c4919f;
+  --color-wine-400: #a8677a;
+  --color-wine-500: #8b3f58;
+  --color-wine-600: #722e46;
+  --color-wine-700: #5c2038;
+  --color-wine-800: #46162b;
+  --color-wine-900: #2e0e1d;
+
+  /* Parchment palette */
+  --color-parchment-50: #fefdfb;
+  --color-parchment-100: #fdf9f3;
+  --color-parchment-200: #f7f0e3;
+  --color-parchment-300: #efe3cc;
+  --color-parchment-400: #e2d0aa;
+  --color-parchment-500: #d4b97a;
+  --color-parchment-600: #b89a56;
+  --color-parchment-700: #96793c;
+  --color-parchment-800: #705a2c;
+  --color-parchment-900: #4a3b1c;
+
+  /* Status colors */
+  --color-success: #5a8a5e;
+  --color-warning: #c49a3c;
+  --color-danger: #a04040;
+  --color-info: #5a7a8a;
+
+  /* Font families */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Shadows */
+  --shadow-warm-sm: 0 1px 2px rgba(46, 14, 29, 0.04);
+  --shadow-warm-md: 0 2px 8px rgba(46, 14, 29, 0.08);
+}
+
+:root {
+  --radius: 0.375rem;
+  --background: #fdf9f3;
+  --foreground: #2e0e1d;
+  --card: #fefdfb;
+  --card-foreground: #2e0e1d;
+  --popover: #fefdfb;
+  --popover-foreground: #2e0e1d;
+  --primary: #8b3f58;
+  --primary-foreground: #fdf9f3;
+  --secondary: #f7f0e3;
+  --secondary-foreground: #5c2038;
+  --muted: #f7f0e3;
+  --muted-foreground: #8b7a6e;
+  --accent: #f7f0e3;
+  --accent-foreground: #5c2038;
+  --destructive: #a04040;
+  --border: #efe3cc;
+  --input: #e2d0aa;
+  --ring: #8b3f58;
+  --chart-1: #8b3f58;
+  --chart-2: #5a8a5e;
+  --chart-3: #c49a3c;
+  --chart-4: #5a7a8a;
+  --chart-5: #a8677a;
+  --sidebar: #fefdfb;
+  --sidebar-foreground: #2e0e1d;
+  --sidebar-primary: #8b3f58;
+  --sidebar-primary-foreground: #fdf9f3;
+  --sidebar-accent: #f7f0e3;
+  --sidebar-accent-foreground: #5c2038;
+  --sidebar-border: #efe3cc;
+  --sidebar-ring: #8b3f58;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+}
+
+/* Parchment texture — subtle organic noise on the background */
+.parchment-bg {
+  position: relative;
+  min-height: 100vh;
+}
+
+.parchment-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Wine stain accents */
+.wine-stain {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wine-stain--1 {
+  width: clamp(140px, 18vw, 220px);
+  height: clamp(140px, 18vw, 220px);
+  top: 15%;
+  right: 8%;
+  background: radial-gradient(
+    ellipse at 45% 50%,
+    rgba(139, 63, 88, 0.05) 0%,
+    rgba(139, 63, 88, 0.025) 40%,
+    rgba(139, 63, 88, 0.008) 65%,
+    transparent 80%
+  );
+  transform: rotate(-12deg) scale(1, 0.92);
+}
+
+.wine-stain--2 {
+  width: clamp(100px, 12vw, 160px);
+  height: clamp(100px, 12vw, 160px);
+  bottom: 20%;
+  left: 5%;
+  background:
+    radial-gradient(
+      ellipse at 48% 52%,
+      transparent 35%,
+      rgba(139, 63, 88, 0.035) 38%,
+      rgba(139, 63, 88, 0.015) 45%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 45% 50%,
+      rgba(139, 63, 88, 0.04) 0%,
+      rgba(139, 63, 88, 0.015) 40%,
+      transparent 60%
+    );
+  transform: rotate(22deg) scale(1.1, 0.85);
+}
