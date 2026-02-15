@@ -6,6 +6,8 @@ import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { BatchCardSkeleton } from "@/components/dashboard/BatchCardSkeleton";
 import type { BatchStatus, BatchWithComputed } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{ status?: string; sort?: string }>;
 }

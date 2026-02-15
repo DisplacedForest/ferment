@@ -4,6 +4,8 @@ import { getBatchByUuid, getTimelineEntries } from "@/lib/queries";
 import { StatusHeader } from "@/components/batch/StatusHeader";
 import { BatchDetailClient } from "@/components/batch/BatchDetailClient";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

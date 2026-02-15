@@ -3,6 +3,8 @@ import { getBatchByUuid, getTimelineEntries, createTimelineEntry } from "@/lib/q
 import { validateTimelineData } from "@/lib/validation";
 import type { TimelineEntryType } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
