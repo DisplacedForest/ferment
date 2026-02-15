@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
       yeastStrain: body.yeastStrain?.trim() || undefined,
       originalGravity: body.originalGravity ?? undefined,
       notes: body.notes?.trim() || undefined,
+      parentBatchIds: body.parentBatchIds ?? undefined,
+      phases: body.phases ?? undefined,
     });
 
     return NextResponse.json(batch, { status: 201 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "./StatusBadge";
+import { PhaseIndicator } from "@/components/batch/PhaseIndicator";
 import { formatGravity, formatTemperature, timeAgo } from "@/lib/utils";
 import type { BatchWithComputed } from "@/types";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,35 @@ export function BatchCard({ batch }: { batch: BatchWithComputed }) {
         )}
       </div>
 
+      {/* Attention indicators */}
+      {(batch.readyToAdvance || (batch.overdueActionCount && batch.overdueActionCount > 0) || (batch.unresolvedAlertCount && batch.unresolvedAlertCount > 0)) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {batch.readyToAdvance && (
+            <span className="rounded px-2 py-0.5 text-xs font-medium bg-wine-100 text-wine-700">
+              Ready to advance
+            </span>
+          )}
+          {batch.overdueActionCount != null && batch.overdueActionCount > 0 && (
+            <span className="rounded px-2 py-0.5 text-xs font-medium bg-[#a04040]/10 text-[#a04040]">
+              {batch.overdueActionCount} overdue
+            </span>
+          )}
+          {batch.unresolvedAlertCount != null && batch.unresolvedAlertCount > 0 && (
+            <span className="rounded px-2 py-0.5 text-xs font-medium bg-[#c49a3c]/10 text-[#c49a3c]">
+              {batch.unresolvedAlertCount} alert{batch.unresolvedAlertCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Next action */}
+      {batch.nextActionName && (
+        <p className="mt-1 text-xs text-parchment-700/80">
+          Next: {batch.nextActionName}
+          {batch.nextActionDueAt && ` \u00b7 ${timeAgo(batch.nextActionDueAt)}`}
+        </p>
+      )}
+
       {/* Footer: day count + last activity */}
       <div className="mt-3 flex items-center justify-between text-xs text-parchment-700/80">
         <span>
@@ -58,15 +88,21 @@ export function BatchCard({ batch }: { batch: BatchWithComputed }) {
         <span>{timeAgo(batch.updatedAt)}</span>
       </div>
 
-      {/* Phase bar placeholder */}
-      <div className="mt-3 flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((seg) => (
-          <div
-            key={seg}
-            className="h-1.5 flex-1 rounded-sm bg-parchment-300/40"
-          />
-        ))}
-      </div>
+      {/* Phase bar */}
+      {batch.phases && batch.phases.length > 0 ? (
+        <div className="mt-3">
+          <PhaseIndicator phases={batch.phases} variant="compact" />
+        </div>
+      ) : (
+        <div className="mt-3 flex gap-0.5">
+          {[1, 2, 3, 4, 5].map((seg) => (
+            <div
+              key={seg}
+              className="h-1.5 flex-1 rounded-sm bg-parchment-300/40"
+            />
+          ))}
+        </div>
+      )}
     </Link>
   );
 }

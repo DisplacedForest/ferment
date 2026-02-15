@@ -13,6 +13,8 @@ export const batches = sqliteTable("batches", {
   finalGravity: real("final_gravity"),
   parentBatchIds: text("parent_batch_ids", { mode: "json" }).$type<string[]>(),
   notes: text("notes"),
+  // Logical FK to batch_phases.id — no .references() to avoid circular ref with SQLite
+  currentPhaseId: integer("current_phase_id"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
   completedAt: text("completed_at"),
@@ -40,4 +42,73 @@ export const timelineEntries = sqliteTable(
     index("idx_timeline_entry_type").on(table.entryType),
     index("idx_timeline_created_at").on(table.createdAt),
   ]
+);
+
+export const batchPhases = sqliteTable(
+  "batch_phases",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    batchId: integer("batch_id")
+      .notNull()
+      .references(() => batches.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    status: text("status", {
+      enum: ["pending", "active", "completed", "skipped"],
+    })
+      .notNull()
+      .default("pending"),
+    startedAt: text("started_at"),
+    completedAt: text("completed_at"),
+    expectedDurationDays: integer("expected_duration_days"),
+    targetTempLow: real("target_temp_low"),
+    targetTempHigh: real("target_temp_high"),
+    targetTempUnit: text("target_temp_unit", { enum: ["F", "C"] }).default("F"),
+    completionCriteria: text("completion_criteria", { mode: "json" }).$type<Record<string, unknown>>(),
+    notes: text("notes"),
+  },
+  (table) => [
+    index("idx_batch_phases_batch_id").on(table.batchId),
+    index("idx_batch_phases_status").on(table.status),
+  ]
+);
+
+export const phaseActions = sqliteTable(
+  "phase_actions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    phaseId: integer("phase_id")
+      .notNull()
+      .references(() => batchPhases.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    intervalDays: integer("interval_days"),
+    dueAt: text("due_at"),
+    lastCompletedAt: text("last_completed_at"),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    index("idx_phase_actions_phase_id").on(table.phaseId),
+    index("idx_phase_actions_due_at").on(table.dueAt),
+  ]
+);
+
+export const protocolTemplates = sqliteTable(
+  "protocol_templates",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category", {
+      enum: ["wine", "beer", "mead", "cider", "other"],
+    })
+      .notNull()
+      .default("other"),
+    templateData: text("template_data", { mode: "json" })
+      .notNull()
+      .$type<Record<string, unknown>>(),
+    isBuiltin: integer("is_builtin", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [index("idx_protocol_templates_category").on(table.category)]
 );

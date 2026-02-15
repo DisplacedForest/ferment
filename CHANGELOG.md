@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-15
+
+### Added
+
+- Protocol templates system with 3 built-in templates (Kit Wine Red, Kit Wine White, Simple Beer Ale)
+- Template CRUD API (`/api/v1/templates`) with built-in deletion protection
+- Batch phases: ordered phase sequences with status tracking (pending/active/completed/skipped)
+- Phase engine evaluating 5 completion criteria types: gravity_stable, duration, action_count, manual, compound
+- Phase actions with scheduling (one-time and recurring) and overdue tracking
+- Phase management API: advance-phase, skip-phase, phase-status endpoints
+- 3-step batch creation wizard (Basics → Protocol → Connect) replacing the simple form
+- Protocol tab on batch detail with accordion phase cards, live evaluation, and advance/skip controls
+- PhaseIndicator component with compact (dashboard) and detailed (batch header) variants
+- Alert detection: stuck fermentation, temperature drift, gravity anomaly — auto-fires on new readings
+- Dashboard attention indicators: overdue action count, unresolved alert count, ready-to-advance badges
+- `currentPhaseId` on batches linking to the active phase
+- `batch_phases`, `phase_actions`, and `protocol_templates` database tables
+
+### Changed
+
+- Batch creation now supports optional phases array in POST body
+- Batch GET responses include phases and currentPhase
+- Dashboard batch queries include phases, phase actions, and attention indicator computation
+- Seed data includes phases for all sample batches
+- Timeline POST for readings now triggers alert detection with 24h deduplication
+
 ## [0.2.0] - 2026-02-15
 
 ### Added
@@ -47,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/DisplacedForest/ferment/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/DisplacedForest/ferment/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/DisplacedForest/ferment/releases/tag/v0.1.0

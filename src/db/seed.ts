@@ -1,6 +1,8 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { batches, timelineEntries } from "./schema";
+import { batches, timelineEntries, batchPhases, phaseActions, protocolTemplates } from "./schema";
+import { builtinTemplates } from "./seed-templates";
+import { eq } from "drizzle-orm";
 
 const dbPath = process.env.DATABASE_PATH || "./data/ferment.db";
 const sqlite = new Database(dbPath);
@@ -18,9 +20,28 @@ function daysAgo(days: number, hoursOffset = 0): string {
 function seed() {
   console.log("Seeding database...");
 
-  // Clear existing data
+  // Clear existing data (order matters for FK constraints)
+  db.delete(phaseActions).run();
+  db.delete(batchPhases).run();
   db.delete(timelineEntries).run();
   db.delete(batches).run();
+  db.delete(protocolTemplates).run();
+
+  // --- Seed protocol templates ---
+  for (const tmpl of builtinTemplates) {
+    db.insert(protocolTemplates)
+      .values({
+        name: tmpl.name,
+        description: tmpl.description,
+        category: tmpl.category,
+        templateData: tmpl.templateData as unknown as Record<string, unknown>,
+        isBuiltin: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .run();
+  }
+  console.log(`Seeded ${builtinTemplates.length} protocol templates.`);
 
   // Batch 1: Active mid-fermentation Cabernet (started ~10 days ago)
   const batch1Rows = db
@@ -40,6 +61,57 @@ function seed() {
     .returning()
     .all();
   const batch1 = batch1Rows[0];
+
+  // Add phases to Batch 1 — currently in Primary
+  const b1Phases = [
+    { name: "Primary", sortOrder: 0, status: "active" as const, startedAt: daysAgo(10), expectedDurationDays: 7, targetTempLow: 68, targetTempHigh: 78, targetTempUnit: "F" as const, completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 } },
+    { name: "Secondary", sortOrder: 1, status: "pending" as const, expectedDurationDays: 14, targetTempLow: 65, targetTempHigh: 72, targetTempUnit: "F" as const, completionCriteria: { type: "compound", criteria: [{ type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 }, { type: "duration", minDays: 10 }] } },
+    { name: "Clearing", sortOrder: 2, status: "pending" as const, expectedDurationDays: 14, completionCriteria: { type: "duration", minDays: 14 } },
+    { name: "Stabilization", sortOrder: 3, status: "pending" as const, expectedDurationDays: 3, completionCriteria: { type: "duration", minDays: 3 } },
+    { name: "Bottling", sortOrder: 4, status: "pending" as const, completionCriteria: { type: "manual" } },
+  ];
+
+  let batch1ActivePhaseId: number | null = null;
+  for (const p of b1Phases) {
+    const [row] = db
+      .insert(batchPhases)
+      .values({
+        batchId: batch1.id,
+        name: p.name,
+        sortOrder: p.sortOrder,
+        status: p.status,
+        startedAt: p.startedAt ?? null,
+        expectedDurationDays: p.expectedDurationDays ?? null,
+        targetTempLow: p.targetTempLow ?? null,
+        targetTempHigh: p.targetTempHigh ?? null,
+        targetTempUnit: p.targetTempUnit ?? null,
+        completionCriteria: p.completionCriteria as unknown as Record<string, unknown>,
+      })
+      .returning()
+      .all();
+    if (p.status === "active") batch1ActivePhaseId = row.id;
+
+    // Add punch-down action to Primary phase
+    if (p.name === "Primary") {
+      db.insert(phaseActions)
+        .values({
+          phaseId: row.id,
+          name: "Punch down cap",
+          intervalDays: 1,
+          dueAt: daysAgo(0),
+          sortOrder: 0,
+        })
+        .run();
+    }
+  }
+
+  // Set currentPhaseId
+  if (batch1ActivePhaseId) {
+    db.update(batches)
+      .set({ currentPhaseId: batch1ActivePhaseId })
+      .where(eq(batches.id, batch1.id))
+      .run();
+  }
 
   // Batch 2: Completed Sauvignon Blanc (started ~60 days ago)
   const batch2Rows = db
@@ -62,6 +134,29 @@ function seed() {
     .all();
   const batch2 = batch2Rows[0];
 
+  // Add completed phases to Batch 2
+  const b2Phases = [
+    { name: "Primary", sortOrder: 0, status: "completed" as const, startedAt: daysAgo(59), completedAt: daysAgo(45), expectedDurationDays: 7 },
+    { name: "Secondary", sortOrder: 1, status: "completed" as const, startedAt: daysAgo(45), completedAt: daysAgo(28), expectedDurationDays: 14 },
+    { name: "Clearing", sortOrder: 2, status: "completed" as const, startedAt: daysAgo(28), completedAt: daysAgo(14), expectedDurationDays: 14 },
+    { name: "Stabilization", sortOrder: 3, status: "completed" as const, startedAt: daysAgo(14), completedAt: daysAgo(10), expectedDurationDays: 3 },
+    { name: "Bottling", sortOrder: 4, status: "completed" as const, startedAt: daysAgo(10), completedAt: daysAgo(5) },
+  ];
+
+  for (const p of b2Phases) {
+    db.insert(batchPhases)
+      .values({
+        batchId: batch2.id,
+        name: p.name,
+        sortOrder: p.sortOrder,
+        status: p.status,
+        startedAt: p.startedAt ?? null,
+        completedAt: p.completedAt ?? null,
+        expectedDurationDays: p.expectedDurationDays ?? null,
+      })
+      .run();
+  }
+
   // Batch 3: Just started yesterday
   const batch3Rows = db
     .insert(batches)
@@ -80,6 +175,27 @@ function seed() {
     .returning()
     .all();
   const batch3 = batch3Rows[0];
+
+  // Batch 3 — just started, Primary active
+  const [b3Primary] = db
+    .insert(batchPhases)
+    .values({
+      batchId: batch3.id,
+      name: "Primary",
+      sortOrder: 0,
+      status: "active",
+      startedAt: daysAgo(1),
+      expectedDurationDays: 7,
+      targetTempLow: 68,
+      targetTempHigh: 80,
+      targetTempUnit: "F",
+      completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 } as unknown as Record<string, unknown>,
+    })
+    .returning()
+    .all();
+  db.insert(batchPhases).values({ batchId: batch3.id, name: "Secondary", sortOrder: 1, status: "pending", expectedDurationDays: 14 }).run();
+  db.insert(batchPhases).values({ batchId: batch3.id, name: "Bottling", sortOrder: 2, status: "pending" }).run();
+  db.update(batches).set({ currentPhaseId: b3Primary.id }).where(eq(batches.id, batch3.id)).run();
 
   // --- Timeline entries for Batch 1 (active Cabernet) ---
 
@@ -229,7 +345,7 @@ function seed() {
     createdAt: daysAgo(1),
   }).run();
 
-  console.log("Seeded 3 batches and 18 timeline entries.");
+  console.log("Seeded 3 batches with phases and 18 timeline entries.");
   sqlite.close();
 }
 

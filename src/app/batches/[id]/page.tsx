@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBatchByUuid, getTimelineEntries } from "@/lib/queries";
+import { getBatchByUuid, getTimelineEntries, getPhasesByBatchId } from "@/lib/queries";
 import { StatusHeader } from "@/components/batch/StatusHeader";
 import { BatchDetailClient } from "@/components/batch/BatchDetailClient";
 
@@ -18,7 +18,10 @@ export default async function BatchDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const { entries, total } = await getTimelineEntries(batch.id, { limit: 50 });
+  const [{ entries, total }, phases] = await Promise.all([
+    getTimelineEntries(batch.id, { limit: 50 }),
+    getPhasesByBatchId(batch.id),
+  ]);
 
   return (
     <div className="pt-8 sm:pt-12">
@@ -31,11 +34,13 @@ export default async function BatchDetailPage({ params }: PageProps) {
         </Link>
       </div>
 
-      <StatusHeader batch={batch} />
+      <StatusHeader batch={batch} phases={phases} />
       <BatchDetailClient
         batchUuid={batch.uuid}
         initialEntries={entries}
         totalEntries={total}
+        phases={phases}
+        currentPhaseId={batch.currentPhaseId}
       />
     </div>
   );

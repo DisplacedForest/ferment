@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBatchByUuid, getTimelineEntries, createTimelineEntry } from "@/lib/queries";
+import { getBatchByUuid, getTimelineEntries, getPhasesByBatchId, createTimelineEntry } from "@/lib/queries";
 import { validateTimelineData } from "@/lib/validation";
-import type { TimelineEntryType } from "@/types";
+import { runAlertDetection } from "@/lib/alert-detection";
+import type { TimelineEntryType, AlertData } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,37 @@ export async function POST(
       data: validation.data,
       createdBy: body.createdBy,
     });
+
+    // Run alert detection after creating a reading entry
+    if (body.entryType === "reading") {
+      try {
+        const { entries: recentEntries } = await getTimelineEntries(batch.id, { limit: 20 });
+        const phases = await getPhasesByBatchId(batch.id);
+        const currentPhase = phases.find((p) => p.id === batch.currentPhaseId) ?? null;
+
+        const alerts = runAlertDetection(recentEntries, currentPhase);
+
+        for (const alert of alerts) {
+          // Dedup: don't fire same alert type within 24h
+          const recentSameAlert = recentEntries.find((e) => {
+            if (e.entryType !== "alert") return false;
+            const data = e.data as unknown as AlertData;
+            if (data.alertType !== alert.alertType) return false;
+            const ageMs = Date.now() - new Date(e.createdAt).getTime();
+            return ageMs < 86400000; // 24h
+          });
+
+          if (!recentSameAlert) {
+            await createTimelineEntry(batch.id, {
+              entryType: "alert",
+              data: alert,
+            });
+          }
+        }
+      } catch (alertErr) {
+        console.error("Alert detection error (non-fatal):", alertErr);
+      }
+    }
 
     return NextResponse.json(entry, { status: 201 });
   } catch (err) {

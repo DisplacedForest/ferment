@@ -4,19 +4,24 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Timeline } from "./Timeline";
+import { ProtocolTab } from "./ProtocolTab";
 import { QuickLogModal } from "@/components/quick-log/QuickLogModal";
-import type { TimelineEntry } from "@/types";
+import type { TimelineEntry, BatchPhase } from "@/types";
 
 interface BatchDetailClientProps {
   batchUuid: string;
   initialEntries: TimelineEntry[];
   totalEntries: number;
+  phases: BatchPhase[];
+  currentPhaseId: number | null;
 }
 
 export function BatchDetailClient({
   batchUuid,
   initialEntries,
   totalEntries,
+  phases,
+  currentPhaseId,
 }: BatchDetailClientProps) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
@@ -67,9 +72,7 @@ export function BatchDetailClient({
         </TabsContent>
 
         <TabsContent value="protocol">
-          <div className="py-12 text-center text-sm text-parchment-700">
-            Protocol management coming in Phase 2.
-          </div>
+          <ProtocolTab batchUuid={batchUuid} phases={phases} currentPhaseId={currentPhaseId} />
         </TabsContent>
 
         <TabsContent value="settings">

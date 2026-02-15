@@ -1,8 +1,14 @@
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { PhaseIndicator } from "./PhaseIndicator";
 import { formatGravity, formatTemperature } from "@/lib/utils";
-import type { BatchWithComputed } from "@/types";
+import type { BatchWithComputed, BatchPhase } from "@/types";
 
-export function StatusHeader({ batch }: { batch: BatchWithComputed }) {
+interface StatusHeaderProps {
+  batch: BatchWithComputed;
+  phases?: BatchPhase[];
+}
+
+export function StatusHeader({ batch, phases }: StatusHeaderProps) {
   return (
     <div className="mb-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -54,6 +60,13 @@ export function StatusHeader({ batch }: { batch: BatchWithComputed }) {
           </div>
         )}
       </div>
+
+      {/* Phase indicator */}
+      {phases && phases.length > 0 && (
+        <div className="mt-5">
+          <PhaseIndicator phases={phases} variant="detailed" currentPhaseId={batch.currentPhaseId} />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NewBatchForm } from "@/components/batch/NewBatchForm";
+import { BatchWizard } from "@/components/batch/BatchWizard";
 
 export default function NewBatchPage() {
   return (
@@ -18,11 +18,11 @@ export default function NewBatchPage() {
           Start a new batch
         </h1>
         <p className="mt-1 text-parchment-700">
-          Just the basics. You can add more detail later.
+          Walk through the basics, pick a protocol, and you&apos;re off.
         </p>
       </div>
 
-      <NewBatchForm />
+      <BatchWizard />
     </div>
   );
 }

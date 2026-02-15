@@ -95,6 +95,7 @@ export interface Batch {
   finalGravity: number | null;
   parentBatchIds: string[] | null;
   notes: string | null;
+  currentPhaseId: number | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -116,4 +117,117 @@ export interface BatchWithComputed extends Batch {
   abv?: number;
   daysSinceStart?: number;
   entryCount?: number;
+  phases?: BatchPhase[];
+  currentPhase?: BatchPhase | null;
+  nextActionName?: string;
+  nextActionDueAt?: string;
+  overdueActionCount?: number;
+  unresolvedAlertCount?: number;
+  readyToAdvance?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Protocol & Phase Types
+// ---------------------------------------------------------------------------
+
+export type PhaseStatus = "pending" | "active" | "completed" | "skipped";
+export type ProtocolCategory = "wine" | "beer" | "mead" | "cider" | "other";
+export type CompletionCriteriaType =
+  | "gravity_stable"
+  | "duration"
+  | "action_count"
+  | "manual"
+  | "compound";
+
+export interface GravityStableCriteria {
+  type: "gravity_stable";
+  consecutiveReadings: number;
+  toleranceSG: number;
+}
+
+export interface DurationCriteria {
+  type: "duration";
+  minDays: number;
+}
+
+export interface ActionCountCriteria {
+  type: "action_count";
+  actionName: string;
+  minCount: number;
+}
+
+export interface ManualCriteria {
+  type: "manual";
+}
+
+export interface CompoundCriteria {
+  type: "compound";
+  criteria: CompletionCriteria[];
+}
+
+export type CompletionCriteria =
+  | GravityStableCriteria
+  | DurationCriteria
+  | ActionCountCriteria
+  | ManualCriteria
+  | CompoundCriteria;
+
+export interface BatchPhase {
+  id: number;
+  batchId: number;
+  name: string;
+  sortOrder: number;
+  status: PhaseStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  expectedDurationDays: number | null;
+  targetTempLow: number | null;
+  targetTempHigh: number | null;
+  targetTempUnit: "F" | "C" | null;
+  completionCriteria: CompletionCriteria | null;
+  notes: string | null;
+}
+
+export interface PhaseAction {
+  id: number;
+  phaseId: number;
+  name: string;
+  intervalDays: number | null;
+  dueAt: string | null;
+  lastCompletedAt: string | null;
+  sortOrder: number;
+}
+
+export interface ProtocolTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  category: ProtocolCategory;
+  templateData: ProtocolTemplateData;
+  isBuiltin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProtocolPhaseTemplate {
+  name: string;
+  sortOrder: number;
+  expectedDurationDays?: number;
+  targetTempLow?: number;
+  targetTempHigh?: number;
+  targetTempUnit?: "F" | "C";
+  completionCriteria?: CompletionCriteria;
+  actions?: { name: string; intervalDays?: number; sortOrder: number }[];
+}
+
+export interface ProtocolTemplateData {
+  phases: ProtocolPhaseTemplate[];
+}
+
+export interface PhaseEvaluation {
+  criteriaMet: boolean;
+  criteriaDetails: string;
+  nextActions: PhaseAction[];
+  overdueActions: PhaseAction[];
+  daysInPhase: number;
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBatchByUuid, updateBatch, archiveBatch } from "@/lib/queries";
+import { getBatchByUuid, updateBatch, archiveBatch, getPhasesByBatchId } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,10 @@ export async function GET(
       return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
-    return NextResponse.json(batch);
+    const phases = await getPhasesByBatchId(batch.id);
+    const currentPhase = phases.find((p) => p.id === batch.currentPhaseId) ?? null;
+
+    return NextResponse.json({ ...batch, phases, currentPhase });
   } catch (err) {
     console.error("GET /api/v1/batches/[id] error:", err);
     return NextResponse.json({ error: "Failed to fetch batch" }, { status: 500 });
