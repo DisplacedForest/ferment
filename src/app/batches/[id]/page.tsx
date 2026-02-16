@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getBatchByUuid, getTimelineEntries, getPhasesByBatchId } from "@/lib/queries";
+import { consolidateUnrecappedReadings } from "@/lib/timeline-consolidation";
 import { StatusHeader } from "@/components/batch/StatusHeader";
 import { BatchDetailClient } from "@/components/batch/BatchDetailClient";
 
@@ -18,10 +19,25 @@ export default async function BatchDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const [{ entries, total }, phases] = await Promise.all([
+  const [{ entries: dbEntries, total: dbTotal }, phases] = await Promise.all([
     getTimelineEntries(batch.id, { limit: 50 }),
     getPhasesByBatchId(batch.id),
   ]);
+
+  // Merge today's consolidated hydrometer readings into the timeline
+  let entries = dbEntries;
+  let total = dbTotal;
+  try {
+    const synthetic = await consolidateUnrecappedReadings(batch.id);
+    if (synthetic.length > 0) {
+      entries = [...synthetic, ...dbEntries].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      total = dbTotal + synthetic.length;
+    }
+  } catch {
+    // Non-fatal — still show real entries
+  }
 
   return (
     <div className="pt-8 sm:pt-12">

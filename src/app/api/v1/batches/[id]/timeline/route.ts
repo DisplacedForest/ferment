@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBatchByUuid, getTimelineEntries, getPhasesByBatchId, createTimelineEntry } from "@/lib/queries";
 import { validateTimelineData } from "@/lib/validation";
 import { runAlertDetection } from "@/lib/alert-detection";
+import { consolidateUnrecappedReadings } from "@/lib/timeline-consolidation";
 import type { TimelineEntryType, AlertData } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +24,53 @@ export async function GET(
     const limit = parseInt(searchParams.get("limit") ?? "50", 10);
     const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
+    const clampedLimit = Math.min(limit, 100);
+    const clampedOffset = Math.max(offset, 0);
+
+    // hourly_summary is synthetic-only — don't query the DB for it
+    if (type === "hourly_summary") {
+      try {
+        const synthetic = await consolidateUnrecappedReadings(batch.id);
+        const hourlySummaries = synthetic.filter((e) => e.entryType === "hourly_summary");
+        return NextResponse.json({ entries: hourlySummaries, total: hourlySummaries.length });
+      } catch (err) {
+        console.error("Timeline consolidation error (non-fatal):", err);
+        return NextResponse.json({ entries: [], total: 0 });
+      }
+    }
+
     const result = await getTimelineEntries(batch.id, {
       type: type ?? undefined,
-      limit: Math.min(limit, 100),
-      offset: Math.max(offset, 0),
+      limit: clampedLimit,
+      offset: clampedOffset,
     });
+
+    // Merge today's consolidated hydrometer readings on the first page
+    const shouldMerge = clampedOffset === 0 && (!type || type === "reading");
+
+    if (shouldMerge) {
+      try {
+        const synthetic = await consolidateUnrecappedReadings(batch.id);
+        if (synthetic.length > 0) {
+          // When filtering by "reading", only include individual readings (not hourly summaries)
+          const filtered = type
+            ? synthetic.filter((e) => e.entryType === type)
+            : synthetic;
+
+          // Merge and sort by timestamp descending
+          const merged = [...filtered, ...result.entries].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          return NextResponse.json({
+            entries: merged,
+            total: result.total + filtered.length,
+          });
+        }
+      } catch (err) {
+        console.error("Timeline consolidation error (non-fatal):", err);
+      }
+    }
 
     return NextResponse.json(result);
   } catch (err) {
@@ -55,7 +98,7 @@ export async function POST(
     }
 
     const validTypes: TimelineEntryType[] = [
-      "reading", "addition", "rack", "taste", "phase_change", "note", "alert", "daily_recap",
+      "reading", "addition", "rack", "taste", "phase_change", "note", "alert", "daily_recap", "hourly_summary",
     ];
     if (!validTypes.includes(body.entryType)) {
       return NextResponse.json(

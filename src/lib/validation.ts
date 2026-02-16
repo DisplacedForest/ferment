@@ -133,7 +133,8 @@ export function validateTimelineData(
       };
     }
 
-    case "daily_recap": {
+    case "daily_recap":
+    case "hourly_summary": {
       // System-generated — no user validation needed, pass through
       return {
         valid: true,

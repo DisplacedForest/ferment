@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-02-15
+
+### Added
+
+- Smart timeline consolidation: Tilt hydrometer readings now appear on the timeline as individual entries (last 4) and hourly summaries (older), computed at read-time from `hydrometer_readings`
+- `HourlySummaryEntry` component for rendering consolidated hourly reading buckets
+- `timeline-consolidation.ts` module for timezone-independent reading consolidation
+- `hourly_summary` timeline entry type with `HourlySummaryData` interface
+
+### Fixed
+
+- Dashboard cards for Tilt-only batches now show gravity and temperature (previously blank because only `timeline_entries` was checked, not `hydrometer_readings`)
+- Timeline consolidation no longer depends on UTC "today" — uses unrecapped reading dates instead, fixing timezone-related empty timeline bug
+
 ## [0.4.0] - 2026-02-15
 
 ### Added
@@ -102,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/DisplacedForest/ferment/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/DisplacedForest/ferment/compare/v0.1.0...v0.2.0

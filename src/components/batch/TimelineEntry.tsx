@@ -7,12 +7,14 @@ import {
   Notepad,
   Warning,
   CalendarDots,
+  Clock,
 } from "@phosphor-icons/react/dist/ssr";
 import { formatGravity, formatTemperature, timeAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { DailyRecapEntry } from "./timeline/DailyRecapEntry";
+import { HourlySummaryEntry } from "./timeline/HourlySummaryEntry";
 import type { Icon } from "@phosphor-icons/react/dist/lib/types";
-import type { TimelineEntry as TEntry, TimelineEntryData, DailyRecapData } from "@/types";
+import type { TimelineEntry as TEntry, TimelineEntryData, DailyRecapData, HourlySummaryData } from "@/types";
 
 const typeConfig: Record<
   string,
@@ -26,6 +28,7 @@ const typeConfig: Record<
   note: { icon: Notepad, color: "border-l-[#8b7a6e]", label: "Note" },
   alert: { icon: Warning, color: "border-l-[#a04040]", label: "Alert" },
   daily_recap: { icon: CalendarDots, color: "border-l-wine-500", label: "Daily recap" },
+  hourly_summary: { icon: Clock, color: "border-l-wine-400", label: "Hourly summary" },
 };
 
 function ReadingContent({ data }: { data: TimelineEntryData }) {
@@ -142,6 +145,11 @@ function DailyRecapContent({ data }: { data: TimelineEntryData }) {
   return <DailyRecapEntry data={data as DailyRecapData} />;
 }
 
+function HourlySummaryContent({ data }: { data: TimelineEntryData }) {
+  if (data.type !== "hourly_summary") return null;
+  return <HourlySummaryEntry data={data as HourlySummaryData} />;
+}
+
 const contentRenderers: Record<string, React.ComponentType<{ data: TimelineEntryData }>> = {
   reading: ReadingContent,
   addition: AdditionContent,
@@ -151,6 +159,7 @@ const contentRenderers: Record<string, React.ComponentType<{ data: TimelineEntry
   phase_change: PhaseChangeContent,
   alert: AlertContent,
   daily_recap: DailyRecapContent,
+  hourly_summary: HourlySummaryContent,
 };
 
 export function TimelineEntryCard({ entry }: { entry: TEntry }) {

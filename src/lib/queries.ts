@@ -70,6 +70,27 @@ export async function getBatches(status?: BatchStatus): Promise<BatchWithCompute
     }
   }
 
+  // Also check hydrometer_readings for batches missing timeline reading entries
+  const batchesMissingReadings = batchIds.filter((id) => !latestReadingMap.has(id));
+  if (batchesMissingReadings.length > 0) {
+    const latestHydroReadings = await db
+      .select()
+      .from(hydrometerReadings)
+      .where(sql`${hydrometerReadings.batchId} IN (${sql.join(batchesMissingReadings.map((id) => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(hydrometerReadings.recordedAt));
+
+    for (const hr of latestHydroReadings) {
+      if (!latestReadingMap.has(hr.batchId)) {
+        latestReadingMap.set(hr.batchId, {
+          type: "reading",
+          gravity: hr.gravity as number,
+          temperature: (hr.temperature as number) ?? undefined,
+          temperatureUnit: (hr.tempUnit as "F" | "C") ?? "F",
+        });
+      }
+    }
+  }
+
   // Fetch phases for all batches
   const allPhases = await db
     .select()
@@ -210,22 +231,36 @@ async function enrichBatch(batch: Batch): Promise<BatchWithComputed> {
     .orderBy(desc(timelineEntries.createdAt))
     .limit(1);
 
-  const reading = latestReadingRows.length > 0
-    ? (latestReadingRows[0].data as unknown as ReadingData)
-    : undefined;
+  let latestGravity: number | undefined;
+  let latestTemperature: number | undefined;
+
+  if (latestReadingRows.length > 0) {
+    const reading = latestReadingRows[0].data as unknown as ReadingData;
+    latestGravity = reading.gravity;
+    latestTemperature = reading.temperature;
+  }
+
+  // Fall back to hydrometer_readings if no manual reading entries exist
+  if (latestGravity == null) {
+    const latestHydrometerReading = await getLatestHydrometerReading(batch.id);
+    if (latestHydrometerReading) {
+      latestGravity = latestHydrometerReading.gravity;
+      latestTemperature = latestHydrometerReading.temperature ?? undefined;
+    }
+  }
 
   const computed: BatchWithComputed = {
     ...batch,
-    latestGravity: reading?.gravity,
-    latestTemperature: reading?.temperature,
+    latestGravity,
+    latestTemperature,
     daysSinceStart: daysBetween(batch.createdAt),
     entryCount: entryCountResult?.count ?? 0,
   };
 
   if (batch.originalGravity && batch.finalGravity) {
     computed.abv = calculateAbv(batch.originalGravity, batch.finalGravity);
-  } else if (batch.originalGravity && reading?.gravity) {
-    computed.abv = calculateAbv(batch.originalGravity, reading.gravity);
+  } else if (batch.originalGravity && latestGravity) {
+    computed.abv = calculateAbv(batch.originalGravity, latestGravity);
   }
 
   return computed;
@@ -327,8 +362,11 @@ export async function archiveBatch(id: number): Promise<void> {
 // Timeline Entries
 // ---------------------------------------------------------------------------
 
+/** Entry types that are persisted in the DB (excludes synthetic types like hourly_summary) */
+type DbTimelineEntryType = Exclude<TimelineEntryType, "hourly_summary">;
+
 export interface GetTimelineOptions {
-  type?: TimelineEntryType;
+  type?: DbTimelineEntryType;
   limit?: number;
   offset?: number;
 }
@@ -374,7 +412,7 @@ export async function getTimelineEntries(
 }
 
 export interface CreateTimelineInput {
-  entryType: TimelineEntryType;
+  entryType: DbTimelineEntryType;
   source?: string;
   data: TimelineEntryData;
   createdBy?: string;

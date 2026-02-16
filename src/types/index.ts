@@ -8,7 +8,8 @@ export type TimelineEntryType =
   | "phase_change"
   | "note"
   | "alert"
-  | "daily_recap";
+  | "daily_recap"
+  | "hourly_summary";
 
 export type TimelineSource = "manual" | "hydrometer-auto" | "hydrometer-confirmed" | "system" | "api";
 
@@ -89,6 +90,16 @@ export interface DailyRecapData {
   dayNumber: number;
 }
 
+export interface HourlySummaryData {
+  type: "hourly_summary";
+  hourLabel: string;
+  startGravity: number;
+  endGravity: number;
+  avgTemperature: number | null;
+  tempUnit: "F" | "C";
+  readingCount: number;
+}
+
 export type TimelineEntryData =
   | ReadingData
   | AdditionData
@@ -97,7 +108,8 @@ export type TimelineEntryData =
   | NoteData
   | PhaseChangeData
   | AlertData
-  | DailyRecapData;
+  | DailyRecapData
+  | HourlySummaryData;
 
 export interface Hydrometer {
   id: number;
