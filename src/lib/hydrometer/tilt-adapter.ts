@@ -88,12 +88,26 @@ export async function processTiltReadings(readings: ParsedTiltReading[]): Promis
     const hydrometer = await getHydrometerByTypeAndIdentifier("tilt", reading.color);
     if (!hydrometer || !hydrometer.isActive) continue;
 
-    // Find active batch linked to this hydrometer
-    const activeBatches = await getBatchesWithHydrometer(hydrometer.id);
-    if (activeBatches.length === 0) continue;
-
     // Apply calibration offset
     const calibratedGravity = reading.gravity + hydrometer.calibrationOffset;
+
+    // Find active batch linked to this hydrometer
+    const activeBatches = await getBatchesWithHydrometer(hydrometer.id);
+
+    if (activeBatches.length === 0) {
+      // No active batch — store as unlinked reading for later backfill
+      await createHydrometerReading({
+        batchId: null,
+        hydrometerId: hydrometer.id,
+        gravity: calibratedGravity,
+        temperature: reading.temperature,
+        tempUnit: "F",
+        rawData: reading.raw as unknown as Record<string, unknown>,
+        recordedAt: now,
+      });
+      ingested++;
+      continue;
+    }
 
     for (const batch of activeBatches) {
       await createHydrometerReading({

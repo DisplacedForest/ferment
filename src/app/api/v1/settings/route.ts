@@ -7,6 +7,11 @@ const ALLOWED_KEYS = [
   "tilt.enabled",
   "tilt.url",
   "tilt.pollInterval",
+  "user.timezone",
+  "user.tempUnit",
+  "user.volumeUnit",
+  "user.gravityUnit",
+  "onboarding.complete",
 ];
 
 export async function GET() {

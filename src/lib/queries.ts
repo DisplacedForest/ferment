@@ -80,7 +80,7 @@ export async function getBatches(status?: BatchStatus): Promise<BatchWithCompute
       .orderBy(desc(hydrometerReadings.recordedAt));
 
     for (const hr of latestHydroReadings) {
-      if (!latestReadingMap.has(hr.batchId)) {
+      if (hr.batchId != null && !latestReadingMap.has(hr.batchId)) {
         latestReadingMap.set(hr.batchId, {
           type: "reading",
           gravity: hr.gravity as number,
@@ -789,7 +789,7 @@ export async function deleteHydrometer(id: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function createHydrometerReading(data: {
-  batchId: number;
+  batchId: number | null;
   hydrometerId: number;
   gravity: number;
   temperature?: number;
@@ -810,13 +810,14 @@ export async function createHydrometerReading(data: {
     })
     .returning();
 
-  // Update batch.updatedAt and hydrometer.lastSeenAt
   const now = new Date().toISOString();
-  await db.update(batches).set({ updatedAt: now }).where(eq(batches.id, data.batchId));
   await db.update(hydrometers).set({ lastSeenAt: now }).where(eq(hydrometers.id, data.hydrometerId));
 
-  // Update finalGravity on batch
-  await db.update(batches).set({ finalGravity: data.gravity }).where(eq(batches.id, data.batchId));
+  // Only update batch side-effects when linked to a batch
+  if (data.batchId) {
+    await db.update(batches).set({ updatedAt: now }).where(eq(batches.id, data.batchId));
+    await db.update(batches).set({ finalGravity: data.gravity }).where(eq(batches.id, data.batchId));
+  }
 
   return row as unknown as HydrometerReading;
 }
@@ -906,6 +907,49 @@ export async function getLatestReadingByHydrometer(hydrometerId: number): Promis
     .orderBy(desc(hydrometerReadings.recordedAt))
     .limit(1);
   return rows.length > 0 ? (rows[0] as unknown as HydrometerReading) : null;
+}
+
+export async function getUnlinkedReadings(
+  hydrometerId: number,
+  maxAgeHours = 72
+): Promise<HydrometerReading[]> {
+  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
+  const rows = await db
+    .select()
+    .from(hydrometerReadings)
+    .where(
+      and(
+        eq(hydrometerReadings.hydrometerId, hydrometerId),
+        sql`${hydrometerReadings.batchId} IS NULL`,
+        sql`${hydrometerReadings.recordedAt} >= ${cutoff}`
+      )
+    )
+    .orderBy(asc(hydrometerReadings.recordedAt));
+  return rows as unknown as HydrometerReading[];
+}
+
+export async function claimReadingsForBatch(
+  readingIds: number[],
+  batchId: number
+): Promise<number> {
+  if (readingIds.length === 0) return 0;
+
+  const result = await db
+    .update(hydrometerReadings)
+    .set({ batchId })
+    .where(
+      and(
+        sql`${hydrometerReadings.id} IN (${sql.join(readingIds.map((id) => sql`${id}`), sql`, `)})`,
+        sql`${hydrometerReadings.batchId} IS NULL`
+      )
+    )
+    .returning();
+
+  // Update batch.updatedAt
+  const now = new Date().toISOString();
+  await db.update(batches).set({ updatedAt: now }).where(eq(batches.id, batchId));
+
+  return result.length;
 }
 
 export async function getBatchesWithHydrometer(hydrometerId: number): Promise<Batch[]> {

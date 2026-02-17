@@ -109,7 +109,6 @@ export const hydrometerReadings = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     batchId: integer("batch_id")
-      .notNull()
       .references(() => batches.id, { onDelete: "cascade" }),
     hydrometerId: integer("hydrometer_id")
       .notNull()

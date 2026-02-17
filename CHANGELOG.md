@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-17
+
+### Added
+
+- Backfill unlinked hydrometer readings: Tilt readings stored with `batch_id = NULL` when no active batch exists, claimable during batch creation
+- Unlinked readings API: `GET/POST /api/v1/hydrometers/[id]/unlinked-readings` for querying and claiming orphaned readings
+- Batch wizard backfill prompt: shows count, SG range, and "include these readings" checkbox when creating a batch with a Tilt that has unlinked data
+- New user onboarding: `/welcome` page with timezone auto-detection, unit preferences (temp, volume, gravity), and Tilt prompt
+- User preference settings: `user.timezone`, `user.tempUnit`, `user.volumeUnit`, `user.gravityUnit`, `onboarding.complete`
+- Searchable combobox component for style and yeast selection in batch wizard
+- Reference data: built-in wine/beer style list and common yeast strains with temp ranges
+- Standalone Tilt CSV parser (`parse-tilt-csv.ts`) extracted from import module
+
+### Changed
+
+- `hydrometer_readings.batch_id` is now nullable — readings can exist without a batch
+- Tilt adapter stores readings even when no batch is linked (previously dropped them)
+- Dashboard redirects fresh installs (no batches + no onboarding flag) to `/welcome`
+- Daily recap generation uses configured timezone instead of UTC for determining "today"
+- Batch wizard step 1 uses searchable dropdowns for style and yeast fields
+
+### Fixed
+
+- Seed data yeast strain naming consistency (RC212 → RC-212)
+
 ## [0.5.0] - 2026-02-17
 
 ### Added
@@ -137,7 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/DisplacedForest/ferment/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/DisplacedForest/ferment/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...v0.4.0

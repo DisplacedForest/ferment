@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { getBatches } from "@/lib/queries";
+import { getBatches, getSetting } from "@/lib/queries";
 import { BatchCard } from "@/components/dashboard/BatchCard";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { BatchCardSkeleton } from "@/components/dashboard/BatchCardSkeleton";
@@ -126,6 +127,15 @@ function BatchGridSkeleton() {
 
 export default async function Home({ searchParams }: PageProps) {
   const { status, sort } = await searchParams;
+
+  // Redirect fresh installs to onboarding
+  const onboardingDone = await getSetting("onboarding.complete");
+  if (!onboardingDone) {
+    const allBatches = await getBatches();
+    if (allBatches.length === 0) {
+      redirect("/welcome");
+    }
+  }
 
   return (
     <div className="pt-8 sm:pt-16">

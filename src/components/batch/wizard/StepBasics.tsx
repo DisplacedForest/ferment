@@ -1,5 +1,8 @@
 "use client";
 
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { STYLES, YEASTS } from "@/lib/reference-data";
+
 interface StepBasicsProps {
   data: {
     name: string;
@@ -14,6 +17,19 @@ interface StepBasicsProps {
 
 const inputClass =
   "w-full rounded-md border border-parchment-400 bg-parchment-50 px-3 py-2 text-sm text-wine-800 placeholder:text-parchment-400 focus:border-wine-400 focus:outline-none focus:ring-1 focus:ring-wine-500/50";
+
+const styleOptions = STYLES.map((s) => ({
+  label: s.name,
+  value: s.name,
+  group: s.category,
+}));
+
+const yeastOptions = YEASTS.map((y) => ({
+  label: y.fullName,
+  value: y.name,
+  group: y.brand,
+  description: `${y.tempRangeLowF}–${y.tempRangeHighF}°F · ${y.alcoholTolerance}%`,
+}));
 
 export function StepBasics({ data, onChange }: StepBasicsProps) {
   return (
@@ -37,13 +53,13 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
         <label htmlFor="style" className="block text-sm font-medium text-wine-800 mb-1">
           Style
         </label>
-        <input
+        <SearchableCombobox
           id="style"
-          type="text"
           value={data.style}
-          onChange={(e) => onChange("style", e.target.value)}
+          onChange={(val) => onChange("style", val)}
+          options={styleOptions}
           placeholder="Cabernet Sauvignon, Chardonnay..."
-          className={inputClass}
+          allowCustom
         />
       </div>
 
@@ -82,13 +98,13 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
         <label htmlFor="yeastStrain" className="block text-sm font-medium text-wine-800 mb-1">
           Yeast strain
         </label>
-        <input
+        <SearchableCombobox
           id="yeastStrain"
-          type="text"
           value={data.yeastStrain}
-          onChange={(e) => onChange("yeastStrain", e.target.value)}
+          onChange={(val) => onChange("yeastStrain", val)}
+          options={yeastOptions}
           placeholder="RC-212, EC-1118..."
-          className={inputClass}
+          allowCustom
         />
       </div>
 

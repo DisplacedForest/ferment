@@ -133,7 +133,7 @@ export interface HydrometerWithStatus extends Hydrometer {
 
 export interface HydrometerReading {
   id: number;
-  batchId: number;
+  batchId: number | null;
   hydrometerId: number;
   gravity: number;
   temperature: number | null;

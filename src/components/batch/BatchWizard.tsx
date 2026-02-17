@@ -6,6 +6,8 @@ import { StepBasics } from "./wizard/StepBasics";
 import { StepProtocol } from "./wizard/StepProtocol";
 import type { PhaseInput } from "./wizard/StepProtocol";
 import { StepConnect } from "./wizard/StepConnect";
+import type { TrackingMode, UnlinkedReadingsData } from "./wizard/StepConnect";
+import type { TiltCSVRow } from "@/lib/import/parse-tilt-csv";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Basics", "Protocol", "Connect"] as const;
@@ -32,6 +34,11 @@ export function BatchWizard() {
   // Step 3 — Connect
   const [parentBatchIds, setParentBatchIds] = useState<string[]>([]);
   const [hydrometerId, setHydrometerId] = useState<number | null>(null);
+  const [trackingMode, setTrackingMode] = useState<TrackingMode>("manual");
+  const [originalGravity, setOriginalGravity] = useState("");
+  const [csvData, setCsvData] = useState<{ rows: TiltCSVRow[]; fileName: string; rawText: string } | null>(null);
+  const [includeBackfill, setIncludeBackfill] = useState(true);
+  const [unlinkedReadings, setUnlinkedReadings] = useState<UnlinkedReadingsData | null>(null);
 
   function handleBasicsChange(field: string, value: string) {
     setBasics((prev) => ({ ...prev, [field]: value }));
@@ -46,6 +53,8 @@ export function BatchWizard() {
     setSubmitting(true);
     setError(null);
 
+    const og = originalGravity ? parseFloat(originalGravity) : undefined;
+
     const body: Record<string, unknown> = {
       name: basics.name.trim(),
       style: basics.style.trim() || undefined,
@@ -55,6 +64,7 @@ export function BatchWizard() {
       notes: basics.notes.trim() || undefined,
       parentBatchIds: parentBatchIds.length > 0 ? parentBatchIds : undefined,
       hydrometerId: hydrometerId ?? undefined,
+      originalGravity: og && !isNaN(og) ? og : undefined,
     };
 
     if (phases.length > 0) {
@@ -92,6 +102,49 @@ export function BatchWizard() {
       }
 
       const batch = await res.json();
+
+      // If hydrometer mode with backfill, claim unlinked readings
+      if (
+        trackingMode === "hydrometer" &&
+        includeBackfill &&
+        unlinkedReadings &&
+        unlinkedReadings.count > 0 &&
+        hydrometerId
+      ) {
+        try {
+          const readingIds = unlinkedReadings.readings.map((r) => r.id);
+          await fetch(`/api/v1/hydrometers/${hydrometerId}/unlinked-readings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ batchId: batch.id, readingIds }),
+          });
+        } catch (claimErr) {
+          console.error("Backfill claim error:", claimErr);
+        }
+      }
+
+      // If import mode with CSV data and a hydrometer linked, import readings
+      if (trackingMode === "import" && csvData && csvData.rows.length > 0 && hydrometerId) {
+        try {
+          const importRes = await fetch("/api/v1/import/tilt-csv", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              csvText: csvData.rawText,
+              batchId: batch.id,
+              hydrometerId,
+            }),
+          });
+
+          if (!importRes.ok) {
+            // Batch was created, but import failed — navigate anyway
+            console.error("CSV import failed after batch creation:", await importRes.text());
+          }
+        } catch (importErr) {
+          console.error("CSV import error:", importErr);
+        }
+      }
+
       router.push(`/batches/${batch.uuid}`);
     } catch {
       setError("Failed to create batch. Check your connection and try again.");
@@ -150,6 +203,15 @@ export function BatchWizard() {
           onParentBatchIdsChange={setParentBatchIds}
           hydrometerId={hydrometerId}
           onHydrometerIdChange={setHydrometerId}
+          trackingMode={trackingMode}
+          onTrackingModeChange={setTrackingMode}
+          originalGravity={originalGravity}
+          onOriginalGravityChange={setOriginalGravity}
+          csvData={csvData}
+          onCsvDataChange={setCsvData}
+          includeBackfill={includeBackfill}
+          onIncludeBackfillChange={setIncludeBackfill}
+          onUnlinkedReadingsChange={setUnlinkedReadings}
         />
       )}
 

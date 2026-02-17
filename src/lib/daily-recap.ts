@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { timelineEntries, batches } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getReadingsForDate, getDatesWithReadings } from "./queries";
+import { getReadingsForDate, getDatesWithReadings, getSetting } from "./queries";
 import { daysBetween } from "./utils";
 import type { DailyRecapData } from "@/types";
 
@@ -84,8 +84,9 @@ export async function generateMissingRecaps(batchId: number): Promise<number> {
     existingRecaps.map((r) => r.createdAt.split("T")[0])
   );
 
-  // Today's date — don't generate recap for today (incomplete data)
-  const today = new Date().toISOString().split("T")[0];
+  // Today's date in user's timezone — don't generate recap for today (incomplete data)
+  const tz = await getSetting("user.timezone");
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: tz || "UTC" });
 
   let generated = 0;
   for (const date of datesWithReadings) {
