@@ -7,7 +7,6 @@ interface StepBasicsProps {
     targetVolume: string;
     targetVolumeUnit: "gal" | "L";
     yeastStrain: string;
-    originalGravity: string;
     notes: string;
   };
   onChange: (field: string, value: string) => void;
@@ -90,21 +89,6 @@ export function StepBasics({ data, onChange }: StepBasicsProps) {
           onChange={(e) => onChange("yeastStrain", e.target.value)}
           placeholder="RC-212, EC-1118..."
           className={inputClass}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="originalGravity" className="block text-sm font-medium text-wine-800 mb-1">
-          Starting gravity
-        </label>
-        <input
-          id="originalGravity"
-          type="number"
-          step="0.001"
-          value={data.originalGravity}
-          onChange={(e) => onChange("originalGravity", e.target.value)}
-          placeholder="1.090"
-          className={inputClass + " font-mono text-lg"}
         />
       </div>
 

@@ -51,7 +51,7 @@ export function BatchCard({ batch }: { batch: BatchWithComputed }) {
       </div>
 
       {/* Attention indicators */}
-      {(batch.readyToAdvance || (batch.overdueActionCount && batch.overdueActionCount > 0) || (batch.unresolvedAlertCount && batch.unresolvedAlertCount > 0)) && (
+      {(batch.readyToAdvance || (batch.overdueActionCount ?? 0) > 0 || (batch.unresolvedAlertCount ?? 0) > 0) && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {batch.readyToAdvance && (
             <span className="rounded px-2 py-0.5 text-xs font-medium bg-wine-100 text-wine-700">

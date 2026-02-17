@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-02-17
+
+### Added
+
+- Batch Settings tab with manual OG field (auto-saves on blur/enter)
+- Hydrometer live status API: `GET /api/v1/hydrometers` now returns `status` (live/waiting/unknown), `lastGravity`, `lastTemperature`, `minutesSinceLastReading` derived from `lastSeenAt` vs poll interval
+- `getLatestReadingByHydrometer()` query for fetching most recent reading by hydrometer ID
+- Live network scan in batch wizard: selecting a hydrometer triggers a TiltPi scan to verify it's broadcasting, independent of polling history
+- "Scan for Tilts" button in wizard Connect step wired to `/api/v1/hydrometers/scan`
+- `HydrometerWithStatus` and `HydrometerStatus` types
+
+### Changed
+
+- Removed starting gravity (OG) from batch wizard step 1 — OG is now set via batch Settings tab, hydrometer auto-read (future), or CSV import (future)
+- Wizard Connect step redesigned: shows hydrometer status indicators, live reading from scan, contextual messages for waiting/unknown states
+- Hydrometer status model uses honest labels: "live" (receiving data), "waiting" (registered, awaiting data), "unknown" (never reported) instead of misleading "offline"
+
+### Fixed
+
+- Dashboard batch cards rendering stray "0" from JSX short-circuit evaluation of `overdueActionCount` and `unresolvedAlertCount`
+
 ## [0.4.1] - 2026-02-15
 
 ### Added
@@ -116,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/DisplacedForest/ferment/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DisplacedForest/ferment/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/DisplacedForest/ferment/compare/v0.2.0...v0.3.0

@@ -23,7 +23,6 @@ export function BatchWizard() {
     targetVolume: "",
     targetVolumeUnit: "gal" as "gal" | "L",
     yeastStrain: "",
-    originalGravity: "",
     notes: "",
   });
 
@@ -53,7 +52,6 @@ export function BatchWizard() {
       targetVolume: basics.targetVolume ? parseFloat(basics.targetVolume) : undefined,
       targetVolumeUnit: basics.targetVolumeUnit,
       yeastStrain: basics.yeastStrain.trim() || undefined,
-      originalGravity: basics.originalGravity ? parseFloat(basics.originalGravity) : undefined,
       notes: basics.notes.trim() || undefined,
       parentBatchIds: parentBatchIds.length > 0 ? parentBatchIds : undefined,
       hydrometerId: hydrometerId ?? undefined,

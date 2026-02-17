@@ -122,6 +122,15 @@ export interface Hydrometer {
   createdAt: string;
 }
 
+export type HydrometerStatus = "live" | "waiting" | "unknown";
+
+export interface HydrometerWithStatus extends Hydrometer {
+  status: HydrometerStatus;
+  lastGravity: number | null;
+  lastTemperature: number | null;
+  minutesSinceLastReading: number | null;
+}
+
 export interface HydrometerReading {
   id: number;
   batchId: number;

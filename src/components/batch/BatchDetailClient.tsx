@@ -7,6 +7,7 @@ import { Timeline } from "./Timeline";
 import { ProtocolTab } from "./ProtocolTab";
 import { FermentationChart } from "./FermentationChart";
 import { QuickLogModal } from "@/components/quick-log/QuickLogModal";
+import { BatchSettings } from "./BatchSettings";
 import type { TimelineEntry, BatchPhase } from "@/types";
 
 interface BatchDetailClientProps {
@@ -75,9 +76,7 @@ export function BatchDetailClient({
         </TabsContent>
 
         <TabsContent value="settings">
-          <div className="py-12 text-center text-sm text-parchment-700">
-            Batch settings coming soon.
-          </div>
+          <BatchSettings batchUuid={batchUuid} />
         </TabsContent>
       </Tabs>
 

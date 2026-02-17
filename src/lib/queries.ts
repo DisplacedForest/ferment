@@ -898,6 +898,16 @@ export async function getDatesWithReadings(batchId: number): Promise<string[]> {
   return rows.map((r) => r.date);
 }
 
+export async function getLatestReadingByHydrometer(hydrometerId: number): Promise<HydrometerReading | null> {
+  const rows = await db
+    .select()
+    .from(hydrometerReadings)
+    .where(eq(hydrometerReadings.hydrometerId, hydrometerId))
+    .orderBy(desc(hydrometerReadings.recordedAt))
+    .limit(1);
+  return rows.length > 0 ? (rows[0] as unknown as HydrometerReading) : null;
+}
+
 export async function getBatchesWithHydrometer(hydrometerId: number): Promise<Batch[]> {
   const rows = await db
     .select()
