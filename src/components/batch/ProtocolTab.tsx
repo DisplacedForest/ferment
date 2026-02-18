@@ -29,6 +29,9 @@ function criteriaDescription(criteria: Record<string, unknown> | null): string {
   if (!criteria) return "No criteria set";
   switch (criteria.type) {
     case "gravity_stable":
+      if (criteria.stableDurationHours) {
+        return `Gravity stable for ${criteria.stableDurationHours}h within ${(criteria.toleranceSG as number)?.toFixed(3)} SG`;
+      }
       return `Gravity stable — ${criteria.consecutiveReadings} readings within ${(criteria.toleranceSG as number)?.toFixed(3)} SG`;
     case "duration":
       return `${criteria.minDays} days minimum`;

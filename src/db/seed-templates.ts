@@ -45,6 +45,7 @@ export const builtinTemplates: TemplateSeedData[] = [
             type: "gravity_stable",
             consecutiveReadings: 3,
             toleranceSG: 0.002,
+            stableDurationHours: 24,
           },
           actions: [
             { name: "Punch down cap", intervalDays: 1, sortOrder: 0 },
@@ -118,6 +119,7 @@ export const builtinTemplates: TemplateSeedData[] = [
             type: "gravity_stable",
             consecutiveReadings: 3,
             toleranceSG: 0.002,
+            stableDurationHours: 24,
           },
           actions: [],
         },

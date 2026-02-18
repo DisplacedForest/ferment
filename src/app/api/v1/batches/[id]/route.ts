@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBatchByUuid, updateBatch, archiveBatch, getPhasesByBatchId } from "@/lib/queries";
+import { getBatchByUuid, updateBatch, archiveBatch, deleteBatch, getPhasesByBatchId } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -59,11 +59,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
-    await archiveBatch(batch.id);
+    await deleteBatch(batch.id);
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("DELETE /api/v1/batches/[id] error:", err);
-    return NextResponse.json({ error: "Failed to archive batch" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete batch" }, { status: 500 });
   }
 }

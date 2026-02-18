@@ -64,7 +64,7 @@ function seed() {
 
   // Add phases to Batch 1 — currently in Primary
   const b1Phases = [
-    { name: "Primary", sortOrder: 0, status: "active" as const, startedAt: daysAgo(10), expectedDurationDays: 7, targetTempLow: 68, targetTempHigh: 78, targetTempUnit: "F" as const, completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 } },
+    { name: "Primary", sortOrder: 0, status: "active" as const, startedAt: daysAgo(10), expectedDurationDays: 7, targetTempLow: 68, targetTempHigh: 78, targetTempUnit: "F" as const, completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002, stableDurationHours: 24 } },
     { name: "Secondary", sortOrder: 1, status: "pending" as const, expectedDurationDays: 14, targetTempLow: 65, targetTempHigh: 72, targetTempUnit: "F" as const, completionCriteria: { type: "compound", criteria: [{ type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 }, { type: "duration", minDays: 10 }] } },
     { name: "Clearing", sortOrder: 2, status: "pending" as const, expectedDurationDays: 14, completionCriteria: { type: "duration", minDays: 14 } },
     { name: "Stabilization", sortOrder: 3, status: "pending" as const, expectedDurationDays: 3, completionCriteria: { type: "duration", minDays: 3 } },
@@ -189,7 +189,7 @@ function seed() {
       targetTempLow: 68,
       targetTempHigh: 80,
       targetTempUnit: "F",
-      completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 } as unknown as Record<string, unknown>,
+      completionCriteria: { type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002, stableDurationHours: 24 } as unknown as Record<string, unknown>,
     })
     .returning()
     .all();

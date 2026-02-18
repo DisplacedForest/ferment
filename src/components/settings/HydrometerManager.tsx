@@ -102,6 +102,15 @@ export function HydrometerManager() {
         return;
       }
 
+      // Auto-enable Tilt polling when the first device is registered
+      if (hydrometers.length === 0) {
+        await fetch("/api/v1/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "tilt.enabled": "true" }),
+        });
+      }
+
       setForm({ name: "", type: "tilt", identifier: "", calibrationOffset: "0" });
       setShowAdd(false);
       fetchHydrometers();

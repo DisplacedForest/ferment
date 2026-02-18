@@ -1066,7 +1066,7 @@ function CriteriaBuilder({
   function handleTypeChange(newType: string) {
     switch (newType) {
       case "gravity_stable":
-        onChange({ type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002 });
+        onChange({ type: "gravity_stable", consecutiveReadings: 3, toleranceSG: 0.002, stableDurationHours: 24 });
         break;
       case "gravity_reached":
         onChange({ type: "gravity_reached", attenuationFraction: 0.333 });

@@ -1,5 +1,5 @@
 import { pollTiltPi, processTiltReadings } from "./tilt-adapter";
-import { getSetting } from "@/lib/queries";
+import { getSetting, setSetting } from "@/lib/queries";
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 let lastPollTime: string | null = null;
@@ -63,12 +63,17 @@ export async function getPollingStatus(): Promise<{
   lastPollError: string | null;
 }> {
   const { enabled, url, intervalMs } = await loadConfig();
+  const dbLastPollTime = await getSetting("tilt.lastPollTime");
+  const running =
+    enabled &&
+    dbLastPollTime !== null &&
+    Date.now() - Date.parse(dbLastPollTime) < 2 * intervalMs;
   return {
     enabled,
-    running: pollInterval !== null,
+    running,
     url: currentUrl ?? url,
     intervalSeconds: currentIntervalMs ? currentIntervalMs / 1000 : intervalMs / 1000,
-    lastPollTime,
+    lastPollTime: dbLastPollTime ?? lastPollTime,
     lastPollError,
   };
 }
@@ -78,6 +83,7 @@ async function runPoll(url: string): Promise<void> {
     const data = await pollTiltPi(url);
     const count = await processTiltReadings(data);
     lastPollTime = new Date().toISOString();
+    await setSetting("tilt.lastPollTime", lastPollTime);
     lastPollError = null;
     if (count > 0) {
       console.log(`[Tilt] Ingested ${count} reading(s)`);
@@ -85,6 +91,7 @@ async function runPoll(url: string): Promise<void> {
   } catch (err) {
     lastPollError = err instanceof Error ? err.message : String(err);
     lastPollTime = new Date().toISOString();
+    await setSetting("tilt.lastPollTime", lastPollTime);
     console.error("[Tilt] Poll error:", lastPollError);
   }
 }
