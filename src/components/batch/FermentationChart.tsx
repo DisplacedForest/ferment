@@ -22,11 +22,14 @@ interface ChartReading {
 interface FermentationChartProps {
   batchUuid: string;
   phases?: BatchPhase[];
+  accentColor?: string;
 }
 
 type TimeRange = "all" | "7d" | "30d";
 
-export function FermentationChart({ batchUuid, phases }: FermentationChartProps) {
+export function FermentationChart({ batchUuid, phases, accentColor }: FermentationChartProps) {
+  const lineColor = accentColor ?? "#8b3f58";
+  const lineColorDark = accentColor ? accentColor : "#722e46";
   const [readings, setReadings] = useState<ChartReading[]>([]);
   const [manualReadings, setManualReadings] = useState<ChartReading[]>([]);
   const [loading, setLoading] = useState(true);
@@ -302,7 +305,7 @@ export function FermentationChart({ batchUuid, phases }: FermentationChartProps)
                 yAxisId="gravity"
                 type="monotone"
                 dataKey="autoGravity"
-                stroke="#8b3f58"
+                stroke={lineColor}
                 strokeWidth={2}
                 dot={false}
                 connectNulls
@@ -315,9 +318,9 @@ export function FermentationChart({ batchUuid, phases }: FermentationChartProps)
                 yAxisId="gravity"
                 type="monotone"
                 dataKey="manualGravity"
-                stroke="#722e46"
+                stroke={lineColorDark}
                 strokeWidth={0}
-                dot={{ r: 4, fill: "#722e46", stroke: "#fdf9f3", strokeWidth: 2 }}
+                dot={{ r: 4, fill: lineColorDark, stroke: "#fdf9f3", strokeWidth: 2 }}
                 connectNulls={false}
               />
             )}

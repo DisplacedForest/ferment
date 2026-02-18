@@ -4,6 +4,7 @@ import { getBatchByUuid, getTimelineEntries, getPhasesByBatchId } from "@/lib/qu
 import { consolidateUnrecappedReadings } from "@/lib/timeline-consolidation";
 import { StatusHeader } from "@/components/batch/StatusHeader";
 import { BatchDetailClient } from "@/components/batch/BatchDetailClient";
+import { batchAccentStyle, getWinePalette } from "@/lib/wine-theme";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,11 @@ export default async function BatchDetailPage({ params }: PageProps) {
     // Non-fatal — still show real entries
   }
 
+  const accentVars = batchAccentStyle(batch.style);
+  const palette = getWinePalette(batch.style);
+
   return (
-    <div className="pt-8 sm:pt-12">
+    <div className="pt-8 sm:pt-12" style={accentVars as React.CSSProperties}>
       <div className="mb-6">
         <Link
           href="/"
@@ -57,6 +61,7 @@ export default async function BatchDetailPage({ params }: PageProps) {
         totalEntries={total}
         phases={phases}
         currentPhaseId={batch.currentPhaseId}
+        accentColor={palette.accent500}
       />
     </div>
   );

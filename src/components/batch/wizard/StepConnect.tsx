@@ -88,7 +88,7 @@ export function StepConnect({
   const [hydrometers, setHydrometers] = useState<HydrometerWithStatus[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const [scanDevices, setScanDevices] = useState<ScanDevice[]>([]);
+  const [, setScanDevices] = useState<ScanDevice[]>([]);
   const [liveChecking, setLiveChecking] = useState(false);
   const [liveDevice, setLiveDevice] = useState<ScanDevice | null>(null);
   const [liveCheckDone, setLiveCheckDone] = useState(false);

@@ -2,15 +2,18 @@ import Link from "next/link";
 import { StatusBadge } from "./StatusBadge";
 import { PhaseIndicator } from "@/components/batch/PhaseIndicator";
 import { formatGravity, formatTemperature, timeAgo } from "@/lib/utils";
+import { batchAccentStyle } from "@/lib/wine-theme";
 import type { BatchWithComputed } from "@/types";
 import { cn } from "@/lib/utils";
 
 export function BatchCard({ batch }: { batch: BatchWithComputed }) {
   const isArchived = batch.status === "archived";
+  const accentVars = batchAccentStyle(batch.style);
 
   return (
     <Link
       href={`/batches/${batch.uuid}`}
+      style={accentVars as React.CSSProperties}
       className={cn(
         "group block rounded-md border border-parchment-300/80 bg-parchment-50 px-5 py-4",
         "shadow-[0_1px_2px_rgba(46,14,29,0.04)] transition-all",

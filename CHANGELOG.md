@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-18
+
+### Added
+
+- Standard protocol mode for batch wizard: opinionated wine phase defaults (Primary, Secondary/MLF, Clearing, Aging, Bottling, Bottle Aging) with red/white variants
+- Phase reordering: drag-and-drop and up/down arrows to reorder all phases in the wizard
+- Contextual phase suggestions: nitrogen-demand-aware nutrient timing, punch-down for reds, fining agents, bottling additions — shown as opt-in chips per phase
+- Custom phase support: add user-defined phases with configurable completion criteria, interspersed with standard phases
+- Time-window gravity stability: `stableDurationHours` criteria checks all readings within a window (e.g. 24h) rather than just consecutive readings
+- Phase suggestion engine (`phase-suggestions.ts`) with yeast nitrogen demand lookup from reference data
+- Default wine phase definitions (`default-phases.ts`) for red and white wine with temperature ranges and completion criteria
+- Hydrometer reading outlier detection with IQR-based anomaly flagging
+- Reading cleanup UI for reviewing and removing outlier readings
+- Additives form overhaul: searchable dropdown with common wine/beer additions grouped by category
+- Wine color theming utilities
+- Reference data: expanded yeast strain database with nitrogen demand ratings
+
+### Changed
+
+- Batch wizard Protocol step redesigned: Standard mode shows all phases in a single reorderable list with inline on/off toggles for optional phases
+- Phase engine evaluates `stableDurationHours` for gravity_stable criteria (backward compatible — falls back to consecutive readings when unset)
+- Phase indicator supports new phase types and displays phase count accurately
+- Fermentation chart styling refinements
+- Batch detail page layout improvements
+- Status badge component updates
+- Searchable combobox ARIA compliance (added aria-controls)
+
 ## [0.6.0] - 2026-02-17
 
 ### Added
@@ -162,7 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/DisplacedForest/ferment/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/DisplacedForest/ferment/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/DisplacedForest/ferment/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/DisplacedForest/ferment/compare/v0.4.0...v0.4.1

@@ -30,6 +30,8 @@ export const batches = sqliteTable("batches", {
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
   completedAt: text("completed_at"),
+  trimStart: text("trim_start"),
+  trimEnd: text("trim_end"),
 });
 
 export const timelineEntries = sqliteTable(
@@ -97,6 +99,9 @@ export const phaseActions = sqliteTable(
     dueAt: text("due_at"),
     lastCompletedAt: text("last_completed_at"),
     sortOrder: integer("sort_order").notNull().default(0),
+    triggerType: text("trigger_type", { enum: ["time", "gravity"] }),
+    triggerGravity: real("trigger_gravity"),
+    triggerAttenuationFraction: real("trigger_attenuation_fraction"),
   },
   (table) => [
     index("idx_phase_actions_phase_id").on(table.phaseId),
@@ -119,6 +124,8 @@ export const hydrometerReadings = sqliteTable(
     rawData: text("raw_data", { mode: "json" }).$type<Record<string, unknown>>(),
     recordedAt: text("recorded_at").notNull(),
     createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+    isExcluded: integer("is_excluded", { mode: "boolean" }).notNull().default(false),
+    excludeReason: text("exclude_reason"),
   },
   (table) => [
     index("idx_readings_batch_id").on(table.batchId),

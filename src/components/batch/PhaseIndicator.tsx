@@ -7,12 +7,23 @@ interface PhaseIndicatorProps {
   currentPhaseId?: number | null;
 }
 
+const SHORT_NAMES: Record<string, string> = {
+  "Primary Fermentation": "Primary",
+  "Secondary / MLF": "Secondary",
+  "Clearing / Fining": "Clearing",
+  "Bulk Aging": "Aging",
+};
+
+function shortName(name: string): string {
+  return SHORT_NAMES[name] ?? name;
+}
+
 function segmentClass(status: string) {
   switch (status) {
     case "completed":
-      return "bg-wine-500";
+      return "bg-[var(--batch-accent-500,_#8b3f58)]";
     case "active":
-      return "bg-wine-400 animate-pulse";
+      return "bg-[var(--batch-accent-400,_#a8677a)] animate-pulse";
     case "skipped":
       return "bg-parchment-400 opacity-50";
     default:
@@ -42,16 +53,17 @@ export function PhaseIndicator({
       {!isCompact && (
         <div className="mt-1.5 flex gap-0.5">
           {phases.map((phase) => (
-            <div key={phase.id} className="flex-1 text-center">
+            <div key={phase.id} className="flex-1 text-center min-w-0">
               <span
                 className={cn(
-                  "text-[10px] leading-tight",
+                  "text-[10px] leading-tight block truncate",
                   phase.id === currentPhaseId
                     ? "font-medium text-wine-800"
                     : "text-parchment-600"
                 )}
+                title={phase.name}
               >
-                {phase.name}
+                {shortName(phase.name)}
               </span>
             </div>
           ))}

@@ -20,6 +20,8 @@ export type AlertSeverity = "info" | "warning" | "critical";
 
 export type HydrometerType = "tilt" | "ispindel" | "rapt" | "other";
 
+export type ExcludeReason = "head_trim" | "tail_trim" | "outlier_auto" | "outlier_manual";
+
 export interface ReadingData {
   type: "reading";
   gravity?: number;
@@ -35,6 +37,10 @@ export interface AdditionData {
   amount?: number;
   unit?: string;
   notes?: string;
+  category?: string;
+  oakFormat?: string;
+  oakToast?: string;
+  oakOrigin?: string;
 }
 
 export interface RackData {
@@ -141,6 +147,8 @@ export interface HydrometerReading {
   rawData: Record<string, unknown> | null;
   recordedAt: string;
   createdAt: string;
+  isExcluded?: boolean;
+  excludeReason?: ExcludeReason | null;
 }
 
 export interface Batch {
@@ -161,6 +169,8 @@ export interface Batch {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  trimStart: string | null;
+  trimEnd: string | null;
 }
 
 export interface TimelineEntry {
@@ -196,6 +206,7 @@ export type PhaseStatus = "pending" | "active" | "completed" | "skipped";
 export type ProtocolCategory = "wine" | "beer" | "mead" | "cider" | "other";
 export type CompletionCriteriaType =
   | "gravity_stable"
+  | "gravity_reached"
   | "duration"
   | "action_count"
   | "manual"
@@ -205,6 +216,7 @@ export interface GravityStableCriteria {
   type: "gravity_stable";
   consecutiveReadings: number;
   toleranceSG: number;
+  stableDurationHours?: number;
 }
 
 export interface DurationCriteria {
@@ -218,6 +230,12 @@ export interface ActionCountCriteria {
   minCount: number;
 }
 
+export interface GravityReachedCriteria {
+  type: "gravity_reached";
+  targetGravity?: number;
+  attenuationFraction?: number;
+}
+
 export interface ManualCriteria {
   type: "manual";
 }
@@ -229,6 +247,7 @@ export interface CompoundCriteria {
 
 export type CompletionCriteria =
   | GravityStableCriteria
+  | GravityReachedCriteria
   | DurationCriteria
   | ActionCountCriteria
   | ManualCriteria
@@ -258,6 +277,9 @@ export interface PhaseAction {
   dueAt: string | null;
   lastCompletedAt: string | null;
   sortOrder: number;
+  triggerType: "time" | "gravity" | null;
+  triggerGravity: number | null;
+  triggerAttenuationFraction: number | null;
 }
 
 export interface ProtocolTemplate {
@@ -279,11 +301,25 @@ export interface ProtocolPhaseTemplate {
   targetTempHigh?: number;
   targetTempUnit?: "F" | "C";
   completionCriteria?: CompletionCriteria;
-  actions?: { name: string; intervalDays?: number; sortOrder: number }[];
+  actions?: {
+    name: string;
+    intervalDays?: number;
+    sortOrder: number;
+    triggerType?: "time" | "gravity";
+    triggerGravity?: number;
+    triggerAttenuationFraction?: number;
+    dueAfterHours?: number;
+  }[];
 }
 
 export interface ProtocolTemplateData {
   phases: ProtocolPhaseTemplate[];
+}
+
+export interface PhaseEvaluationContext {
+  originalGravity?: number;
+  expectedFinalGravity?: number;
+  latestGravity?: number;
 }
 
 export interface PhaseEvaluation {

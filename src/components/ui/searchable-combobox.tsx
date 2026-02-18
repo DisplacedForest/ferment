@@ -34,6 +34,7 @@ export function SearchableCombobox({
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const listboxId = id ? `${id}-listbox` : "combobox-listbox";
 
   // Display label: find matching option or show raw value
   const selectedOption = options.find((o) => o.value === value);
@@ -137,6 +138,7 @@ export function SearchableCombobox({
           type="text"
           role="combobox"
           aria-expanded={open}
+          aria-controls={listboxId}
           aria-autocomplete="list"
           autoComplete="off"
           value={open ? search : displayValue}
@@ -163,6 +165,7 @@ export function SearchableCombobox({
         >
           <div
             ref={listRef}
+            id={listboxId}
             role="listbox"
             className="max-h-64 overflow-y-auto py-1"
           >

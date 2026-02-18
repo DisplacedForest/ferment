@@ -550,9 +550,122 @@ const RED_STAR: YeastOption[] = [
   },
 ];
 
+// ── Additive Options ──────────────────────────────────────────────────────
+
+export type AdditiveCategory =
+  | "Nutrient"
+  | "Sulfite"
+  | "Fining Agent"
+  | "Oak"
+  | "Acid"
+  | "Enzyme"
+  | "Other";
+
+export interface AdditiveOption {
+  name: string;
+  category: AdditiveCategory;
+  defaultUnit: string;
+  dosageRange?: string;
+  dosageNotes?: string;
+  description?: string;
+}
+
+export interface OakOption extends AdditiveOption {
+  category: "Oak";
+  oakFormat: string;
+  oakToast: string;
+  oakOrigin?: string;
+}
+
+const NUTRIENTS: AdditiveOption[] = [
+  { name: "Fermaid-O", category: "Nutrient", defaultUnit: "g", dosageRange: "1.0 g/gal", dosageNotes: "Add at 24h, 48h, and 1/3 sugar break", description: "Organic nitrogen supplement" },
+  { name: "Fermaid-K", category: "Nutrient", defaultUnit: "g", dosageRange: "1.0 g/gal", dosageNotes: "Add at 24h and 48h", description: "Blended nutrient (DAP + organic)" },
+  { name: "DAP (Diammonium Phosphate)", category: "Nutrient", defaultUnit: "g", dosageRange: "0.5–1.0 g/gal", dosageNotes: "Add early in fermentation", description: "Inorganic nitrogen" },
+  { name: "Go-Ferm", category: "Nutrient", defaultUnit: "g", dosageRange: "1.25 g per g of yeast", dosageNotes: "Mix with warm water before adding yeast", description: "Yeast rehydration nutrient" },
+  { name: "Go-Ferm Protect Evolution", category: "Nutrient", defaultUnit: "g", dosageRange: "1.25 g per g of yeast", dosageNotes: "Mix with warm water before adding yeast", description: "Enhanced yeast rehydration nutrient" },
+  { name: "Opti-Red", category: "Nutrient", defaultUnit: "g", dosageRange: "0.5 g/gal", description: "Red wine tannin and nutrient" },
+  { name: "Opti-White", category: "Nutrient", defaultUnit: "g", dosageRange: "0.25 g/gal", description: "White wine antioxidant nutrient" },
+];
+
+const SULFITES: AdditiveOption[] = [
+  { name: "Potassium Metabisulfite (K-Meta)", category: "Sulfite", defaultUnit: "g", dosageRange: "0.25–0.5 g/gal", description: "SO\u2082 addition" },
+  { name: "Campden Tablets", category: "Sulfite", defaultUnit: "tablets", dosageRange: "1 tablet per gallon", description: "Pre-measured SO\u2082" },
+  { name: "Potassium Sorbate", category: "Sulfite", defaultUnit: "g", dosageRange: "0.5 g/gal", dosageNotes: "Use with K-Meta", description: "Fermentation inhibitor" },
+];
+
+const FINING_AGENTS: AdditiveOption[] = [
+  { name: "Bentonite", category: "Fining Agent", defaultUnit: "g", dosageRange: "0.5–2.0 g/gal", description: "Clay fining for protein haze" },
+  { name: "Sparkolloid", category: "Fining Agent", defaultUnit: "g", dosageRange: "1 tsp per gallon", dosageNotes: "Mix hot before adding", description: "Positively charged fining" },
+  { name: "Gelatin", category: "Fining Agent", defaultUnit: "g", dosageRange: "0.15–0.25 g/gal", description: "Protein fining for tannin reduction" },
+  { name: "Chitosan (Kieselsol/Chitosan)", category: "Fining Agent", defaultUnit: "mL", description: "Two-part fining" },
+  { name: "Super-Kleer (KC)", category: "Fining Agent", defaultUnit: "mL", dosageRange: "1 packet per 6 gal", description: "Two-part fining kit" },
+  { name: "Egg White", category: "Fining Agent", defaultUnit: "pieces", dosageRange: "1 per 5 gal", description: "Traditional red wine fining" },
+  { name: "Isinglass", category: "Fining Agent", defaultUnit: "mL", description: "Fish-derived fining for whites" },
+];
+
+const ACIDS: AdditiveOption[] = [
+  { name: "Tartaric Acid", category: "Acid", defaultUnit: "g", dosageRange: "1 g/gal raises TA ~1 g/L", description: "Primary wine acid" },
+  { name: "Citric Acid", category: "Acid", defaultUnit: "g", description: "Supplemental acid, adds brightness" },
+  { name: "Malic Acid", category: "Acid", defaultUnit: "g", description: "Green apple character" },
+  { name: "Acid Blend", category: "Acid", defaultUnit: "g", description: "Tartaric/citric/malic mix" },
+];
+
+const ENZYMES: AdditiveOption[] = [
+  { name: "Pectic Enzyme (Pectinase)", category: "Enzyme", defaultUnit: "g", dosageNotes: "Add pre-fermentation", description: "Breaks down pectin for clarity" },
+  { name: "Lallzyme EX", category: "Enzyme", defaultUnit: "g", description: "Color and tannin extraction enzyme" },
+];
+
+const OAK_PRODUCTS: OakOption[] = [
+  // French Oak Cubes
+  { name: "French Oak Cubes (Medium)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium", oakOrigin: "French", description: "Balanced vanilla and spice" },
+  { name: "French Oak Cubes (Medium+)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium+", oakOrigin: "French", description: "Toasted caramel and coffee notes" },
+  { name: "French Oak Cubes (Heavy)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Heavy", oakOrigin: "French", description: "Smoky, dark chocolate character" },
+  // American Oak Cubes
+  { name: "American Oak Cubes (Medium)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium", oakOrigin: "American", description: "Coconut and vanilla" },
+  { name: "American Oak Cubes (Medium+)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium+", oakOrigin: "American", description: "Bold vanilla and caramel" },
+  { name: "American Oak Cubes (Heavy)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Heavy", oakOrigin: "American", description: "Char and smoke forward" },
+  // Hungarian Oak Cubes
+  { name: "Hungarian Oak Cubes (Medium)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium", oakOrigin: "Hungarian", description: "Spicy, structured tannins" },
+  { name: "Hungarian Oak Cubes (Medium+)", category: "Oak", defaultUnit: "oz", dosageRange: "1–2 oz per gallon", oakFormat: "Cubes", oakToast: "Medium+", oakOrigin: "Hungarian", description: "Toasty with cinnamon spice" },
+  // French Oak Spirals
+  { name: "French Oak Spirals (Medium)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Medium", oakOrigin: "French", description: "Elegant vanilla integration" },
+  { name: "French Oak Spirals (Medium+)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Medium+", oakOrigin: "French", description: "Rich toasted character" },
+  { name: "French Oak Spirals (Heavy)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Heavy", oakOrigin: "French", description: "Deep smoke and char" },
+  // American Oak Spirals
+  { name: "American Oak Spirals (Medium)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Medium", oakOrigin: "American", description: "Bold coconut vanilla" },
+  { name: "American Oak Spirals (Medium+)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Medium+", oakOrigin: "American", description: "Strong caramel and vanilla" },
+  { name: "American Oak Spirals (Heavy)", category: "Oak", defaultUnit: "pieces", dosageRange: "1 spiral per gallon", oakFormat: "Spirals", oakToast: "Heavy", oakOrigin: "American", description: "Campfire and char" },
+  // Oak Chips
+  { name: "French Oak Chips (Light)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Light", oakOrigin: "French", description: "Subtle wood character" },
+  { name: "French Oak Chips (Medium)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Medium", oakOrigin: "French", description: "Balanced oak flavors" },
+  { name: "French Oak Chips (Heavy)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Heavy", oakOrigin: "French", description: "Strong toasted flavor" },
+  { name: "American Oak Chips (Light)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Light", oakOrigin: "American", description: "Light coconut and vanilla" },
+  { name: "American Oak Chips (Medium)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Medium", oakOrigin: "American", description: "Classic American oak" },
+  { name: "American Oak Chips (Heavy)", category: "Oak", defaultUnit: "oz", dosageRange: "0.5–1 oz per gallon", oakFormat: "Chips", oakToast: "Heavy", oakOrigin: "American", description: "Intense char and smoke" },
+];
+
+const OTHER_ADDITIVES: AdditiveOption[] = [
+  { name: "Tannin (powder)", category: "Other", defaultUnit: "g", description: "Supplemental tannin" },
+  { name: "Oak Tannin (liquid)", category: "Other", defaultUnit: "mL", description: "Liquid tannin extract" },
+  { name: "Glycerin", category: "Other", defaultUnit: "mL", description: "Mouthfeel enhancement" },
+  { name: "Wine Conditioner", category: "Other", defaultUnit: "mL", description: "Sweetener and sorbate blend" },
+];
+
 // ── Exports ────────────────────────────────────────────────────────────────
 
 export const YEASTS: YeastOption[] = [...LALVIN, ...RED_STAR];
+
+export const ADDITIVES: AdditiveOption[] = [
+  ...NUTRIENTS,
+  ...SULFITES,
+  ...FINING_AGENTS,
+  ...ACIDS,
+  ...ENZYMES,
+  ...OAK_PRODUCTS,
+  ...OTHER_ADDITIVES,
+];
+
+export const OAK_OPTIONS: OakOption[] = OAK_PRODUCTS;
 
 export function getYeastByName(name: string): YeastOption | undefined {
   return YEASTS.find(
@@ -569,4 +682,18 @@ export function getYeastsForVarietal(varietal: string): YeastOption[] {
 
 export function getStyleCategory(styleName: string): string | undefined {
   return STYLES.find((s) => s.name === styleName)?.category;
+}
+
+export function getAdditiveByName(name: string): AdditiveOption | undefined {
+  return ADDITIVES.find(
+    (a) => a.name.toLowerCase() === name.toLowerCase(),
+  );
+}
+
+export function getAdditivesByCategory(category: string): AdditiveOption[] {
+  return ADDITIVES.filter((a) => a.category === category);
+}
+
+export function isOakAdditive(additive: AdditiveOption): additive is OakOption {
+  return additive.category === "Oak" && "oakFormat" in additive;
 }

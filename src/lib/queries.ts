@@ -582,7 +582,15 @@ export interface CreateBatchPhasesInput {
   targetTempHigh?: number;
   targetTempUnit?: "F" | "C";
   completionCriteria?: Record<string, unknown>;
-  actions?: { name: string; intervalDays?: number; sortOrder: number }[];
+  actions?: {
+    name: string;
+    intervalDays?: number;
+    sortOrder: number;
+    triggerType?: "time" | "gravity";
+    triggerGravity?: number;
+    triggerAttenuationFraction?: number;
+    dueAfterHours?: number;
+  }[];
 }
 
 export async function createBatchPhases(
@@ -618,11 +626,22 @@ export async function createBatchPhases(
     // Create actions for this phase
     if (p.actions && p.actions.length > 0) {
       for (const action of p.actions) {
+        // Compute dueAt for time-based actions with dueAfterHours
+        let dueAt: string | null = null;
+        if (isFirst && action.dueAfterHours) {
+          const due = new Date(new Date(now).getTime() + action.dueAfterHours * 3600000);
+          dueAt = due.toISOString();
+        }
+
         await db.insert(phaseActions).values({
           phaseId: phase.id,
           name: action.name,
           intervalDays: action.intervalDays ?? null,
+          dueAt,
           sortOrder: action.sortOrder,
+          triggerType: action.triggerType ?? null,
+          triggerGravity: action.triggerGravity ?? null,
+          triggerAttenuationFraction: action.triggerAttenuationFraction ?? null,
         });
       }
     }
@@ -824,13 +843,14 @@ export async function createHydrometerReading(data: {
 
 export async function getHydrometerReadings(
   batchId: number,
-  options: { from?: string; to?: string; resolution?: "raw" | "hourly" | "daily" } = {}
+  options: { from?: string; to?: string; resolution?: "raw" | "hourly" | "daily"; includeExcluded?: boolean } = {}
 ): Promise<HydrometerReading[]> {
-  const { from, to, resolution = "raw" } = options;
+  const { from, to, resolution = "raw", includeExcluded = false } = options;
 
   const conditions = [eq(hydrometerReadings.batchId, batchId)];
   if (from) conditions.push(sql`${hydrometerReadings.recordedAt} >= ${from}`);
   if (to) conditions.push(sql`${hydrometerReadings.recordedAt} <= ${to}`);
+  if (!includeExcluded) conditions.push(sql`${hydrometerReadings.isExcluded} = 0`);
 
   if (resolution === "raw") {
     const rows = await db
@@ -867,7 +887,12 @@ export async function getLatestHydrometerReading(batchId: number): Promise<Hydro
   const rows = await db
     .select()
     .from(hydrometerReadings)
-    .where(eq(hydrometerReadings.batchId, batchId))
+    .where(
+      and(
+        eq(hydrometerReadings.batchId, batchId),
+        sql`${hydrometerReadings.isExcluded} = 0`
+      )
+    )
     .orderBy(desc(hydrometerReadings.recordedAt))
     .limit(1);
   return rows.length > 0 ? (rows[0] as unknown as HydrometerReading) : null;
@@ -875,17 +900,21 @@ export async function getLatestHydrometerReading(batchId: number): Promise<Hydro
 
 export async function getReadingsForDate(
   batchId: number,
-  date: string
+  date: string,
+  options: { includeExcluded?: boolean } = {}
 ): Promise<HydrometerReading[]> {
+  const conditions = [
+    eq(hydrometerReadings.batchId, batchId),
+    sql`date(${hydrometerReadings.recordedAt}) = ${date}`,
+  ];
+  if (!options.includeExcluded) {
+    conditions.push(sql`${hydrometerReadings.isExcluded} = 0`);
+  }
+
   const rows = await db
     .select()
     .from(hydrometerReadings)
-    .where(
-      and(
-        eq(hydrometerReadings.batchId, batchId),
-        sql`date(${hydrometerReadings.recordedAt}) = ${date}`
-      )
-    )
+    .where(and(...conditions))
     .orderBy(asc(hydrometerReadings.recordedAt));
   return rows as unknown as HydrometerReading[];
 }
@@ -894,7 +923,12 @@ export async function getDatesWithReadings(batchId: number): Promise<string[]> {
   const rows = await db
     .select({ date: sql<string>`DISTINCT date(${hydrometerReadings.recordedAt})` })
     .from(hydrometerReadings)
-    .where(eq(hydrometerReadings.batchId, batchId))
+    .where(
+      and(
+        eq(hydrometerReadings.batchId, batchId),
+        sql`${hydrometerReadings.isExcluded} = 0`
+      )
+    )
     .orderBy(sql`date(${hydrometerReadings.recordedAt})`);
   return rows.map((r) => r.date);
 }
@@ -998,4 +1032,55 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
     if (val !== null) result[key] = val;
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Reading Cleanup (Outlier Detection)
+// ---------------------------------------------------------------------------
+
+export async function getAllReadingsForCleanup(batchId: number): Promise<HydrometerReading[]> {
+  const rows = await db
+    .select()
+    .from(hydrometerReadings)
+    .where(eq(hydrometerReadings.batchId, batchId))
+    .orderBy(asc(hydrometerReadings.recordedAt));
+  return rows as unknown as HydrometerReading[];
+}
+
+export async function markReadingsExcluded(
+  ids: number[],
+  reason: "head_trim" | "tail_trim" | "outlier_auto" | "outlier_manual"
+): Promise<number> {
+  if (ids.length === 0) return 0;
+  const result = await db
+    .update(hydrometerReadings)
+    .set({ isExcluded: true, excludeReason: reason })
+    .where(sql`${hydrometerReadings.id} IN (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)
+    .returning();
+  return result.length;
+}
+
+export async function markReadingsIncluded(ids: number[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const result = await db
+    .update(hydrometerReadings)
+    .set({ isExcluded: false, excludeReason: null })
+    .where(sql`${hydrometerReadings.id} IN (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`)
+    .returning();
+  return result.length;
+}
+
+export async function applyTrimBoundaries(
+  batchId: number,
+  trimStart: string | null,
+  trimEnd: string | null
+): Promise<void> {
+  await db
+    .update(batches)
+    .set({
+      trimStart: trimStart ?? null,
+      trimEnd: trimEnd ?? null,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(batches.id, batchId));
 }

@@ -1,4 +1,5 @@
 import type { ProtocolTemplateData } from "@/types";
+import { standardPhasesToTemplate, STANDARD_WINE_PHASES_RED, STANDARD_WINE_PHASES_WHITE } from "@/lib/default-phases";
 
 export interface TemplateSeedData {
   name: string;
@@ -8,6 +9,24 @@ export interface TemplateSeedData {
 }
 
 export const builtinTemplates: TemplateSeedData[] = [
+  {
+    name: "Standard Wine (Red)",
+    description:
+      "Opinionated 5-phase red wine protocol with nutrient schedule, gravity-based triggers, and daily cap management.",
+    category: "wine",
+    templateData: {
+      phases: standardPhasesToTemplate(STANDARD_WINE_PHASES_RED),
+    },
+  },
+  {
+    name: "Standard Wine (White)",
+    description:
+      "Opinionated 5-phase white wine protocol with nutrient schedule and gravity-based triggers. Lower fermentation temps, no punch-downs.",
+    category: "wine",
+    templateData: {
+      phases: standardPhasesToTemplate(STANDARD_WINE_PHASES_WHITE),
+    },
+  },
   {
     name: "Kit Wine (Red)",
     description:

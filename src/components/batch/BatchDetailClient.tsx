@@ -7,6 +7,7 @@ import { Timeline } from "./Timeline";
 import { ProtocolTab } from "./ProtocolTab";
 import { FermentationChart } from "./FermentationChart";
 import { QuickLogModal } from "@/components/quick-log/QuickLogModal";
+import { ReadingCleanup } from "./ReadingCleanup";
 import { BatchSettings } from "./BatchSettings";
 import type { TimelineEntry, BatchPhase } from "@/types";
 
@@ -16,6 +17,7 @@ interface BatchDetailClientProps {
   totalEntries: number;
   phases: BatchPhase[];
   currentPhaseId: number | null;
+  accentColor?: string;
 }
 
 export function BatchDetailClient({
@@ -24,9 +26,11 @@ export function BatchDetailClient({
   totalEntries,
   phases,
   currentPhaseId,
+  accentColor,
 }: BatchDetailClientProps) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
   const [entries, setEntries] = useState(initialEntries);
   const [total, setTotal] = useState(totalEntries);
 
@@ -68,7 +72,16 @@ export function BatchDetailClient({
         </TabsContent>
 
         <TabsContent value="chart">
-          <FermentationChart batchUuid={batchUuid} phases={phases} />
+          <FermentationChart batchUuid={batchUuid} phases={phases} accentColor={accentColor} />
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setCleanupOpen(true)}
+              className="text-xs text-parchment-600 hover:text-wine-600 transition-colors"
+            >
+              Clean up readings
+            </button>
+          </div>
         </TabsContent>
 
         <TabsContent value="protocol">
@@ -86,6 +99,14 @@ export function BatchDetailClient({
         onOpenChange={setModalOpen}
         batchUuid={batchUuid}
         onEntryCreated={handleEntryCreated}
+      />
+
+      {/* Reading Cleanup Dialog */}
+      <ReadingCleanup
+        open={cleanupOpen}
+        onOpenChange={setCleanupOpen}
+        batchUuid={batchUuid}
+        onCleanupApplied={handleEntryCreated}
       />
     </div>
   );

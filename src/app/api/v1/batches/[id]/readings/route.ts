@@ -28,8 +28,9 @@ export async function GET(
     const from = searchParams.get("from") ?? undefined;
     const to = searchParams.get("to") ?? undefined;
     const resolution = (searchParams.get("resolution") ?? "raw") as "raw" | "hourly" | "daily";
+    const includeExcluded = searchParams.get("includeExcluded") === "true";
 
-    const readings = await getHydrometerReadings(batch.id, { from, to, resolution });
+    const readings = await getHydrometerReadings(batch.id, { from, to, resolution, includeExcluded });
     const latest = await getLatestHydrometerReading(batch.id);
 
     return NextResponse.json({ readings, latest });

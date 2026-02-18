@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepBasics } from "./wizard/StepBasics";
 import { StepProtocol } from "./wizard/StepProtocol";
-import type { PhaseInput } from "./wizard/StepProtocol";
+import type { PhaseInput, ProtocolMode } from "./wizard/StepProtocol";
 import { StepConnect } from "./wizard/StepConnect";
 import type { TrackingMode, UnlinkedReadingsData } from "./wizard/StepConnect";
 import type { TiltCSVRow } from "@/lib/import/parse-tilt-csv";
@@ -30,6 +30,7 @@ export function BatchWizard() {
 
   // Step 2 — Protocol
   const [phases, setPhases] = useState<PhaseInput[]>([]);
+  const [protocolMode, setProtocolMode] = useState<ProtocolMode>("standard");
 
   // Step 3 — Connect
   const [parentBatchIds, setParentBatchIds] = useState<string[]>([]);
@@ -84,6 +85,10 @@ export function BatchWizard() {
               name: a.name.trim(),
               intervalDays: a.intervalDays ? parseInt(a.intervalDays) : undefined,
               sortOrder: a.sortOrder,
+              triggerType: a.triggerType ?? undefined,
+              triggerGravity: a.triggerGravity ?? undefined,
+              triggerAttenuationFraction: a.triggerAttenuationFraction ?? undefined,
+              dueAfterHours: a.dueAfterHours ?? undefined,
             })),
         }));
     }
@@ -194,7 +199,15 @@ export function BatchWizard() {
 
       {/* Step content */}
       {step === 0 && <StepBasics data={basics} onChange={handleBasicsChange} />}
-      {step === 1 && <StepProtocol phases={phases} onPhasesChange={setPhases} />}
+      {step === 1 && (
+        <StepProtocol
+          phases={phases}
+          onPhasesChange={setPhases}
+          protocolMode={protocolMode}
+          onProtocolModeChange={setProtocolMode}
+          wineContext={{ style: basics.style, yeastStrain: basics.yeastStrain }}
+        />
+      )}
       {step === 2 && (
         <StepConnect
           basics={basics}
