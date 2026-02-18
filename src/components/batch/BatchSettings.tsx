@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface BatchSettingsProps {
   batchUuid: string;
@@ -21,10 +23,14 @@ interface BatchData {
 }
 
 export function BatchSettings({ batchUuid }: BatchSettingsProps) {
+  const router = useRouter();
   const [batch, setBatch] = useState<BatchData | null>(null);
   const [og, setOg] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetch(`/api/v1/batches/${batchUuid}`)
@@ -56,6 +62,18 @@ export function BatchSettings({ batchUuid }: BatchSettingsProps) {
       setSaving(false);
     }
   }, [batchUuid, og]);
+
+  const handleDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/batches/${batchUuid}`, { method: "DELETE" });
+      if (res.ok) {
+        router.push("/");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }, [batchUuid, router]);
 
   if (!batch) {
     return (
@@ -93,12 +111,64 @@ export function BatchSettings({ batchUuid }: BatchSettingsProps) {
         </div>
       </div>
 
-      {/* Placeholder for future batch settings */}
+      {/* Danger zone */}
       <div className="border-t border-parchment-300/60 pt-6">
-        <p className="text-sm text-parchment-700">
-          More batch settings coming soon — metadata editing, hydrometer assignment, export, and archiving.
+        <p className="text-sm font-medium text-wine-800 mb-1">Danger zone</p>
+        <p className="text-xs text-parchment-600 mb-3">
+          Permanently delete this batch and all its readings, timeline entries, and phases. This can&apos;t be undone.
         </p>
+        <button
+          type="button"
+          onClick={() => { setDeleteConfirm(""); setShowDeleteDialog(true); }}
+          className="rounded border border-[#a04040]/40 px-4 py-1.5 text-sm font-medium text-[#a04040] transition-colors hover:border-[#a04040] hover:bg-[#a04040]/5"
+        >
+          Delete batch
+        </button>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!open) { setShowDeleteDialog(false); setDeleteConfirm(""); } }}>
+        <DialogContent className="rounded-md border border-parchment-300/80 bg-parchment-50 shadow-[0_4px_24px_rgba(46,14,29,0.12)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg text-wine-800">Delete this batch?</DialogTitle>
+            <DialogDescription className="text-sm text-parchment-700">
+              This permanently deletes <span className="font-medium text-wine-800">{batch.name}</span> along with all readings, timeline entries, and phases. There&apos;s no going back.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-parchment-700 mb-1">
+                Type <span className="font-mono text-wine-700">{batch.name}</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                className={inputClass}
+                placeholder={batch.name}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowDeleteDialog(false); setDeleteConfirm(""); }}
+                className="rounded border border-parchment-300/80 px-4 py-1.5 text-sm font-medium text-parchment-700 transition-colors hover:border-parchment-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteConfirm !== batch.name || deleting}
+                className="rounded bg-[#a04040] px-4 py-1.5 text-sm font-medium text-parchment-100 shadow-[0_1px_2px_rgba(46,14,29,0.12)] transition-colors hover:bg-[#8a3535] disabled:opacity-40"
+              >
+                {deleting ? "Deleting..." : "Delete batch"}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

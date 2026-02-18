@@ -358,6 +358,10 @@ export async function archiveBatch(id: number): Promise<void> {
     .where(eq(batches.id, id));
 }
 
+export async function deleteBatch(id: number): Promise<void> {
+  await db.delete(batches).where(eq(batches.id, id));
+}
+
 // ---------------------------------------------------------------------------
 // Timeline Entries
 // ---------------------------------------------------------------------------
