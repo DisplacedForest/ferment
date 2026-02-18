@@ -16,8 +16,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "batchId is required" }, { status: 400 });
     }
 
-    if (!body.hydrometerId || typeof body.hydrometerId !== "number") {
-      return NextResponse.json({ error: "hydrometerId is required" }, { status: 400 });
+    // hydrometerId is optional — historical imports may not link to a specific device
+    const hydrometerId: number | null = body.hydrometerId ?? null;
+    if (hydrometerId !== null && typeof hydrometerId !== "number") {
+      return NextResponse.json({ error: "hydrometerId must be a number if provided" }, { status: 400 });
     }
 
     // Validate batch exists
@@ -26,10 +28,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
-    // Validate hydrometer exists
-    const hydrometer = await getHydrometerById(body.hydrometerId);
-    if (!hydrometer) {
-      return NextResponse.json({ error: "Hydrometer not found" }, { status: 404 });
+    // Validate hydrometer exists only when provided
+    if (hydrometerId !== null) {
+      const hydrometer = await getHydrometerById(hydrometerId);
+      if (!hydrometer) {
+        return NextResponse.json({ error: "Hydrometer not found" }, { status: 404 });
+      }
     }
 
     // Parse CSV
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Import
-    const result = await importTiltData(rows, body.batchId, body.hydrometerId);
+    const result = await importTiltData(rows, body.batchId, hydrometerId);
 
     return NextResponse.json({
       ...result,

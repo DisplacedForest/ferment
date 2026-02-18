@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-02-18
+
+### Fixed
+
+- Tilt polling no longer duplicates readings across multiple active batches when the same hydrometer is linked to more than one — writes to the first (oldest) batch only and logs a warning
+- Dashboard entry count now includes `hydrometer_readings` rows, so Tilt-only batches display a correct count instead of zero
+- CSV import now detects gravity stratification in the first 24h of readings and sets the batch OG to the peak gravity rather than the first reading; pre-peak readings are imported with `isExcluded = true, excludeReason = "stratification"`
+- CSV import no longer auto-links the historical import to a currently registered Tilt of the same color — hydrometer selection in import mode is now optional and always user-initiated
+
+### Changed
+
+- `hydrometer_readings.hydrometer_id` is now nullable; readings imported without a device link are fully supported
+
 ## [0.7.1] - 2026-02-18
 
 ### Fixed
@@ -198,7 +211,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable configuration via `.env.example`
 - MIT license
 
-[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/DisplacedForest/ferment/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/DisplacedForest/ferment/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/DisplacedForest/ferment/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/DisplacedForest/ferment/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/DisplacedForest/ferment/compare/v0.5.0...v0.6.0

@@ -196,20 +196,8 @@ export function StepConnect({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackingMode, hydrometerId]);
 
-  // Auto-match CSV color to registered hydrometer
-  useEffect(() => {
-    if (trackingMode === "import" && csvData && csvData.rows.length > 0) {
-      const csvColor = csvData.rows[0].color;
-      if (csvColor) {
-        const match = hydrometers.find(
-          (h) => h.identifier.toLowerCase() === csvColor.toLowerCase()
-        );
-        if (match) {
-          onHydrometerIdChange(match.id);
-        }
-      }
-    }
-  }, [trackingMode, csvData, hydrometers, onHydrometerIdChange]);
+  // Note: no auto-link for import mode — the CSV's Tilt color may now be assigned to a
+  // different active batch. Users should explicitly select a hydrometer if they want to link.
 
   function toggleParent(uuid: string) {
     if (parentBatchIds.includes(uuid)) {
@@ -660,27 +648,19 @@ export function StepConnect({
                 )}
               </div>
 
-              {/* Hydrometer matching status */}
-              {csvColor && (
-                <div className="mt-3 pt-3 border-t border-parchment-300/60">
-                  {csvHydrometerMatch ? (
-                    <p className="text-xs text-[#5a8a5e]">
-                      Matched to {csvHydrometerMatch.name} ({csvHydrometerMatch.identifier})
-                    </p>
-                  ) : (
-                    <p className="text-xs text-parchment-600">
-                      No registered {csvColor} Tilt found. You can add one in Settings, or import without linking.
-                    </p>
+              {/* Hydrometer link — optional for historical imports */}
+              <div className="mt-3 pt-3 border-t border-parchment-300/60">
+                <label className="block text-xs font-medium text-wine-800 mb-1">
+                  Link to a hydrometer{" "}
+                  <span className="font-normal text-parchment-600">(optional)</span>
+                </label>
+                <p className="text-xs text-parchment-600 mb-2">
+                  Hydrometer link is optional for historical imports. Only link if these readings genuinely came from this device.
+                  {csvHydrometerMatch && (
+                    <> A <span className="capitalize">{csvColor}</span> Tilt is registered — select it below if this CSV came from that device.</>
                   )}
-                </div>
-              )}
-
-              {/* Manual hydrometer selection for import if no auto-match */}
-              {!csvHydrometerMatch && hydrometers.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-parchment-300/60">
-                  <label className="block text-xs font-medium text-wine-800 mb-1">
-                    Link to a hydrometer
-                  </label>
+                </p>
+                {hydrometers.length > 0 ? (
                   <select
                     value={hydrometerId ?? ""}
                     onChange={(e) =>
@@ -688,29 +668,19 @@ export function StepConnect({
                     }
                     className="w-full rounded-md border border-parchment-400 bg-parchment-50 px-3 py-1.5 text-xs text-wine-800 focus:border-wine-400 focus:outline-none focus:ring-1 focus:ring-wine-500/50"
                   >
-                    <option value="">Select a hydrometer</option>
+                    <option value="">No hydrometer link</option>
                     {hydrometers.map((h) => (
                       <option key={h.id} value={h.id}>
                         {h.name} ({h.type} — {h.identifier})
                       </option>
                     ))}
                   </select>
-                  {!hydrometerId && (
-                    <p className="text-xs text-[#c49a3c] mt-1">
-                      A hydrometer is needed to import readings. Select one above or add one in Settings first.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* No hydrometers registered at all */}
-              {!csvHydrometerMatch && hydrometers.length === 0 && (
-                <div className="mt-3 pt-3 border-t border-parchment-300/60">
-                  <p className="text-xs text-[#c49a3c]">
-                    No hydrometers registered. Add one in Settings to import these readings, or the batch will be created without the CSV data.
+                ) : (
+                  <p className="text-xs text-parchment-600">
+                    No hydrometers registered. The import will proceed without a device link.
                   </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -718,12 +688,12 @@ export function StepConnect({
             <p className="text-sm text-[#a04040]">{csvError}</p>
           )}
 
-          {/* OG display — auto-set from CSV */}
+          {/* OG display — auto-set from CSV, may be adjusted for stratification on import */}
           {csvData && originalGravity && (
             <div className="flex items-baseline gap-2">
               <span className="text-sm text-parchment-700">Starting gravity:</span>
               <span className="font-mono text-lg text-wine-800">{originalGravity} SG</span>
-              <span className="text-xs text-parchment-600">(from earliest reading)</span>
+              <span className="text-xs text-parchment-600">(adjusted for stratification on import)</span>
             </div>
           )}
         </div>

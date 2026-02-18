@@ -116,8 +116,7 @@ export const hydrometerReadings = sqliteTable(
     batchId: integer("batch_id")
       .references(() => batches.id, { onDelete: "cascade" }),
     hydrometerId: integer("hydrometer_id")
-      .notNull()
-      .references(() => hydrometers.id, { onDelete: "cascade" }),
+      .references(() => hydrometers.id, { onDelete: "set null" }),
     gravity: real("gravity").notNull(),
     temperature: real("temperature"),
     tempUnit: text("temp_unit", { enum: ["F", "C"] }).default("F"),

@@ -109,18 +109,22 @@ export async function processTiltReadings(readings: ParsedTiltReading[]): Promis
       continue;
     }
 
-    for (const batch of activeBatches) {
-      await createHydrometerReading({
-        batchId: batch.id,
-        hydrometerId: hydrometer.id,
-        gravity: calibratedGravity,
-        temperature: reading.temperature,
-        tempUnit: "F",
-        rawData: reading.raw as unknown as Record<string, unknown>,
-        recordedAt: now,
-      });
-      ingested++;
+    if (activeBatches.length > 1) {
+      console.warn(
+        `[tilt] Hydrometer ${hydrometer.id} (${reading.color}) is linked to ${activeBatches.length} active batches — writing to batch ${activeBatches[0].id} only`
+      );
     }
+
+    await createHydrometerReading({
+      batchId: activeBatches[0].id,
+      hydrometerId: hydrometer.id,
+      gravity: calibratedGravity,
+      temperature: reading.temperature,
+      tempUnit: "F",
+      rawData: reading.raw as unknown as Record<string, unknown>,
+      recordedAt: now,
+    });
+    ingested++;
   }
 
   return ingested;

@@ -39,16 +39,30 @@ export async function getBatches(status?: BatchStatus): Promise<BatchWithCompute
   // Batch-query latest reading + entry count for each batch
   const batchIds = rows.map((r) => r.id);
 
-  const entryCounts = await db
-    .select({
-      batchId: timelineEntries.batchId,
-      count: count(),
-    })
-    .from(timelineEntries)
-    .where(sql`${timelineEntries.batchId} IN (${sql.join(batchIds.map((id) => sql`${id}`), sql`, `)})`)
-    .groupBy(timelineEntries.batchId);
+  const [entryCounts, hydrometerCounts] = await Promise.all([
+    db
+      .select({ batchId: timelineEntries.batchId, count: count() })
+      .from(timelineEntries)
+      .where(sql`${timelineEntries.batchId} IN (${sql.join(batchIds.map((id) => sql`${id}`), sql`, `)})`)
+      .groupBy(timelineEntries.batchId),
+    db
+      .select({ batchId: hydrometerReadings.batchId, count: count() })
+      .from(hydrometerReadings)
+      .where(
+        and(
+          sql`${hydrometerReadings.batchId} IN (${sql.join(batchIds.map((id) => sql`${id}`), sql`, `)})`,
+          eq(hydrometerReadings.isExcluded, false)
+        )
+      )
+      .groupBy(hydrometerReadings.batchId),
+  ]);
 
   const entryCountMap = new Map(entryCounts.map((e) => [e.batchId, e.count]));
+  const hydrometerCountMap = new Map(
+    hydrometerCounts
+      .filter((e): e is { batchId: number; count: number } => e.batchId !== null)
+      .map((e) => [e.batchId, e.count])
+  );
 
   // Get latest reading per batch using a correlated subquery approach
   const latestReadings = await db
@@ -170,7 +184,7 @@ export async function getBatches(status?: BatchStatus): Promise<BatchWithCompute
       latestGravity: reading?.gravity,
       latestTemperature: reading?.temperature,
       daysSinceStart: daysBetween(batch.createdAt),
-      entryCount: entryCountMap.get(row.id) ?? 0,
+      entryCount: (entryCountMap.get(row.id) ?? 0) + (hydrometerCountMap.get(row.id) ?? 0),
       phases,
       currentPhase,
       unresolvedAlertCount: unresolvedAlertMap.get(row.id) ?? 0,
@@ -214,10 +228,13 @@ export async function getBatchByUuid(uuid: string): Promise<BatchWithComputed | 
 }
 
 async function enrichBatch(batch: Batch): Promise<BatchWithComputed> {
-  const [entryCountResult] = await db
-    .select({ count: count() })
-    .from(timelineEntries)
-    .where(eq(timelineEntries.batchId, batch.id));
+  const [[entryCountResult], [hydroCountResult]] = await Promise.all([
+    db.select({ count: count() }).from(timelineEntries).where(eq(timelineEntries.batchId, batch.id)),
+    db
+      .select({ count: count() })
+      .from(hydrometerReadings)
+      .where(and(eq(hydrometerReadings.batchId, batch.id), eq(hydrometerReadings.isExcluded, false))),
+  ]);
 
   const latestReadingRows = await db
     .select()
@@ -254,7 +271,7 @@ async function enrichBatch(batch: Batch): Promise<BatchWithComputed> {
     latestGravity,
     latestTemperature,
     daysSinceStart: daysBetween(batch.createdAt),
-    entryCount: entryCountResult?.count ?? 0,
+    entryCount: (entryCountResult?.count ?? 0) + (hydroCountResult?.count ?? 0),
   };
 
   if (batch.originalGravity && batch.finalGravity) {
@@ -813,12 +830,14 @@ export async function deleteHydrometer(id: number): Promise<void> {
 
 export async function createHydrometerReading(data: {
   batchId: number | null;
-  hydrometerId: number;
+  hydrometerId: number | null;
   gravity: number;
   temperature?: number;
   tempUnit?: "F" | "C";
   rawData?: Record<string, unknown>;
   recordedAt: string;
+  isExcluded?: boolean;
+  excludeReason?: string | null;
 }): Promise<HydrometerReading> {
   const [row] = await db
     .insert(hydrometerReadings)
@@ -830,14 +849,19 @@ export async function createHydrometerReading(data: {
       tempUnit: data.tempUnit ?? "F",
       rawData: data.rawData ?? null,
       recordedAt: data.recordedAt,
+      isExcluded: data.isExcluded ?? false,
+      excludeReason: data.excludeReason ?? null,
     })
     .returning();
 
   const now = new Date().toISOString();
-  await db.update(hydrometers).set({ lastSeenAt: now }).where(eq(hydrometers.id, data.hydrometerId));
 
-  // Only update batch side-effects when linked to a batch
-  if (data.batchId) {
+  if (data.hydrometerId) {
+    await db.update(hydrometers).set({ lastSeenAt: now }).where(eq(hydrometers.id, data.hydrometerId));
+  }
+
+  // Only update batch side-effects when linked to a batch and reading is not excluded
+  if (data.batchId && !data.isExcluded) {
     await db.update(batches).set({ updatedAt: now }).where(eq(batches.id, data.batchId));
     await db.update(batches).set({ finalGravity: data.gravity }).where(eq(batches.id, data.batchId));
   }
